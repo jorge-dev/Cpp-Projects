@@ -1,0 +1,48 @@
+12 Angry Men
+1957
+96
+App
+Alien
+1979
+117
+R
+Back to the Future
+1985
+116
+PG
+Despicable Me 2
+2013
+98
+PG
+Dial M for Murder
+1954
+105
+App
+Modern Times
+1936
+87
+App
+Planet of the Apes
+1968
+112
+G
+Seven Samurai
+1954
+207
+UR
+Star Wars: Episode IV - A New Hope
+1977
+121
+PG
+Tie Me Up! Tie Me Down!
+1990
+111
+NC-17
+To Kill a Mockingbird
+1962
+129
+App
+The Lord of the Rings: The Fellowship of the Ring
+2001
+178
+PG-13

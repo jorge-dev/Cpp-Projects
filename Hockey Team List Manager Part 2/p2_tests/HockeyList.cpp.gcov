@@ -1,0 +1,429 @@
+        -:    0:Source:HockeyList.cpp
+        -:    0:Graph:HockeyList.gcno
+        -:    0:Data:HockeyList.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:#include "HockeyList.h"
+        -:    2:#include <iostream>
+        -:    3:#include <cstring>
+        -:    4:
+        -:    5:/*
+        -:    6:  INTERNAL IMPLEMENTATION:
+        -:    7:       findTeamNumber is implemente inside update.
+        -:    8:       
+        -:    9:       search is implemented inside move,activate,update,lookup,
+        -:   10:                                    and getTeam
+        -:   11:				    
+        -:   12:       createPlayer is implemented inside load
+        -:   13:       
+        -:   14:       link is implemented inside  update,activate and move
+        -:   15:				  
+        -:   16:       unlink is implemented inside ~HockeyList, update,activate 
+        -:   17:                                  and move
+        -:   18:
+        -:   19:				  
+        -:   20:       displayTeam is implemented inside display
+        -:   21:
+        -:   22:  PRIVATE METHOD SPECIFICATION:
+        -:   23:  
+        -:   24:       findTeamNumber: takes a teams first letter caharacter and 
+        -:   25:                       converts it to the correct array index for 
+        -:   26:		       that team (returns the team index number).
+        -:   27:
+        -:   28:       search: searches a specific player in the list and if found
+        -:   29:               it updates and returns the player's team and a 
+        -:   30:               PlayerNode with the rest of the information.
+        -:   31:	       (returns true if the player is found, false if not)
+        -:   32:
+        -:   33:       createPlayer: creates new player node by dinamiacally allocating
+        -:   34:                     the necessary memory needed to create players 
+        -:   35:		     during run time.
+        -:   36:		     (returns a ListPtr loaded with players information)
+        -:   37:
+        -:   38:       link: correctly links and connects a new node into the link list
+        -:   39:             by redirecting the pointers to avoid a memory leak
+        -:   40:
+        -:   41:       unlinks: detaches a node from the link list by correctly redirecting
+        -:   42:                necessary pointers to extract the neede node from the 
+        -:   43:                current list.
+        -:   44:
+        -:   45:       displayTeam: given a specified team, it traverses the specified team's
+        -:   46:                    list and prints all the players and its information one
+        -:   47:		    by one using the following format:
+        -:   48:		    "number, player name, goals, assists, goals against"
+        -:   49:		  
+        -:   50:     
+        -:   51:
+        -:   52:
+        -:   53: */
+        -:   54:
+        -:   55:
+        -:   56:
+        -:   57://=======================Public=============================
+        -:   58:
+       67:   59:HockeyList::HockeyList()
+        -:   60:{
+      335:   61:    for (int i = 0; i < 4; i++)
+        -:   62:    {
+      268:   63:	head[i].next = &tail[i];
+      268:   64:	tail[i].prev = &head[i]; 
+        -:   65:    }
+        -:   66:  // stub
+       67:   67:}
+        -:   68:
+       67:   69:HockeyList::~HockeyList()
+        -:   70:{
+        -:   71:
+        -:   72:    ListPtr temp;
+      335:   73:    for (int i = 0; i < NUMTEAMS;i++)
+        -:   74:    {
+      268:   75:	temp = head[i].next;
+      859:   76:	while (temp != &tail[i])
+        -:   77:	{
+        -:   78:	    //head[i].next = temp -> next;
+      323:   79:	    unlink(temp);
+      323:   80:	    delete temp -> thePlayer;
+      323:   81:	    delete temp;
+      323:   82:	    temp = head[i].next;
+        -:   83:	}
+        -:   84:	//head[i].next == &tail[i];
+        -:   85:	
+        -:   86:    }
+        -:   87:    
+        -:   88:  // stub
+       67:   89:}
+        -:   90:
+       57:   91:int HockeyList::load(istream &infile)
+        -:   92:{
+        -:   93:    char name [MAXNAMELEN+1];
+        -:   94:    char position;
+        -:   95:    int goals;
+        -:   96:    int assists;
+        -:   97:    int goalsAgainst;
+        -:   98:    char team;
+       57:   99:    int numPlayers = 0;
+        -:  100:    int teamNumber;
+        -:  101:    ListPtr listPlayer;
+        -:  102:
+       57:  103:    infile >> team;
+        -:  104:    
+      437:  105:    while (!infile.eof())
+        -:  106:    {
+      323:  107:	teamNumber = findTeamNumber(team);
+        -:  108:	
+      323:  109:	infile >> position;
+      323:  110:	infile >> goals;
+      323:  111:	infile >> assists;
+      323:  112:	infile >> goalsAgainst;
+      323:  113:	infile.ignore();
+      323:  114:	infile.getline(name,MAXNAMELEN + 1);
+        -:  115:     
+        -:  116:	listPlayer = createPlayer(name, position, goals, assists, 
+      323:  117:					   goalsAgainst);
+        -:  118:
+      323:  119:	link(listPlayer, teamNumber);
+        -:  120:
+      323:  121:	infile >> team;
+        -:  122:	
+      323:  123:	numPlayers++;
+        -:  124:
+        -:  125:    }
+        -:  126:
+        -:  127:    
+        -:  128:    
+        -:  129:  // stub
+       57:  130:    return numPlayers;
+        -:  131:}
+        -:  132:
+       13:  133:void HockeyList::write(ostream &out)const
+        -:  134:{
+        -:  135:    ListPtr current;
+        -:  136:
+       65:  137:    for (int i = 0; i < NUMTEAMS; i++)
+        -:  138:    {
+       52:  139:	    current = head[i].next;
+      133:  140:	while (current != &tail[i])
+        -:  141:	{
+       29:  142:	    out << TEAMCHARS[i]<< ' ';
+       29:  143:	    out << current -> thePlayer -> position<< ' ';
+       29:  144:	    out << current -> thePlayer -> goals<< ' ';
+       29:  145:	    out << current -> thePlayer -> assists<< ' ';
+       29:  146:	    out << current -> thePlayer -> goalsAgainst<< ' ';
+       29:  147:	    out << current -> thePlayer -> name;
+       29:  148:	    out << endl;
+       29:  149:	    current = current ->next;
+        -:  150:	    
+        -:  151:	}
+        -:  152:    }
+        -:  153:    
+        -:  154:    
+        -:  155:    
+        -:  156:  // stub
+       13:  157:}
+        -:  158:
+        7:  159:void HockeyList::display(ostream &out) const
+        -:  160:{
+        7:  161:    int position =1;
+        7:  162:    int numEmpty = 0;
+        -:  163://    cout << "--------------------------------------------"
+        -:  164://	 << "-----------------------------------"<<endl<<endl;
+        -:  165:   
+        -:  166:    
+        -:  167:    
+       35:  168:    for (int i = 0; i < NUMTEAMS; i++)
+        -:  169:    {
+       28:  170:	 if (head[i].next == &tail[i])
+        -:  171:	 {
+       18:  172:	     numEmpty++;
+        -:  173:	 }
+        -:  174:	 else 
+        -:  175:	 {
+       10:  176:	     displayTeam(i, position, out);
+        -:  177:	     
+        -:  178:	 }
+        -:  179:
+        -:  180:    }
+        -:  181:    
+        7:  182:    if (numEmpty == NUMTEAMS)
+        -:  183:    {
+        1:  184:	out << endl;
+        1:  185:	out << "Empty list. There's nothing to display"<<endl;
+        1:  186:	out << endl;
+        -:  187:	
+        -:  188:    }
+        -:  189: 
+        -:  190:    //   cout << "--------------------------------------------"
+        -:  191://	 << "-----------------------------------"<<endl;
+        -:  192:// stub
+        7:  193:}
+        -:  194:
+       15:  195:bool HockeyList:: move(int position)
+        -:  196:{
+       15:  197:    bool found = false;
+       15:  198:    bool success = false;
+       15:  199:    int team =0 ;
+        -:  200:    ListPtr item;
+        -:  201: 
+        -:  202:
+       15:  203:    success =search(position,item,team);
+        -:  204:    
+       15:  205:    if (success && INJURYLISTPOSITION != team)
+        -:  206:    {
+       13:  207:	found = true;
+       13:  208:	unlink(item);
+       13:  209:	link(item ,INJURYLISTPOSITION);
+        -:  210:    }
+        -:  211:       
+        -:  212:    
+        -:  213:  // stub
+       15:  214:    return found;
+        -:  215:}
+        -:  216:
+       13:  217:bool HockeyList::activate(int position, char team)
+        -:  218:{
+       13:  219:    bool found = false;
+        -:  220:    bool success;
+       13:  221:    int teamNumber =0;
+        -:  222:    int teamTemp;
+        -:  223:    ListPtr item;
+        -:  224: 
+       13:  225:    teamTemp = findTeamNumber(team);
+        -:  226: 
+       13:  227:    success =search(position,item,teamNumber);
+        -:  228:    
+        -:  229:    
+       13:  230:    if (success && teamNumber == INJURYLISTPOSITION )
+        -:  231:    {
+        -:  232:
+       11:  233:	found = true;
+       11:  234:	unlink(item);
+       11:  235:	link(item ,teamTemp);
+        -:  236:    }
+        -:  237:        
+        -:  238:    
+        -:  239:
+        -:  240:  // stub
+       13:  241:    return found;
+        -:  242:}
+        -:  243:
+       12:  244:bool HockeyList::update(int position, int goals, int assists, int goalsAgainst)
+        -:  245:{
+        -:  246:    bool found;
+       12:  247:    bool success = false;
+        -:  248:    ListPtr item;
+        -:  249:    int team;
+       12:  250:    found = search(position,item,team);
+        -:  251:    
+       12:  252:    if (found && team != INJURYLISTPOSITION )
+        -:  253:    {
+        -:  254:	
+       10:  255:	success = true;
+       10:  256:	unlink(item);
+       10:  257:	item -> thePlayer -> goals += goals;
+       10:  258:	item -> thePlayer -> assists += assists;
+        -:  259:	
+       10:  260:	if (item -> thePlayer -> position == GOAL)
+        5:  261:	    item -> thePlayer -> goalsAgainst += goalsAgainst;
+        -:  262:	
+       10:  263:	link(item, team);
+        -:  264:    }
+        -:  265:    
+        -:  266:  // stub
+       12:  267:    return success;
+        -:  268:}
+        -:  269:
+       70:  270:void HockeyList::lookup(int position, PlayerNode &player, bool &found) const
+        -:  271:{
+        -:  272:    ListPtr item;
+       70:  273:    int team = 0;
+        -:  274:
+       70:  275:    found = search(position,item,team);
+       70:  276:    if (found)
+        -:  277:    {
+       68:  278:	strncpy(player.name,item -> thePlayer -> name,MAXNAMELEN+1);
+       68:  279:	player.assists = item -> thePlayer -> assists;
+       68:  280:	player.goals = item -> thePlayer -> goals;
+       68:  281:	player.goalsAgainst = item -> thePlayer -> goalsAgainst;
+       68:  282:	player.position = item -> thePlayer -> position;
+        -:  283:    }
+        -:  284:  // stub
+       70:  285:}
+        -:  286:
+       63:  287:char HockeyList::getTeam(int position) const
+        -:  288:{
+        -:  289:    bool found;
+       63:  290:    int teamNum =0;
+        -:  291:    char team;
+        -:  292:    ListPtr item;
+       63:  293:    found =search(position,item,teamNum);
+       63:  294:    if (found)
+        -:  295:    {
+       63:  296:	team = TEAMCHARS[teamNum];
+        -:  297:    }
+       63:  298:    return team;
+        -:  299:}
+        -:  300:
+        -:  301:
+        -:  302://==============================Private===============================================
+        -:  303:
+      336:  304:int HockeyList::findTeamNumber(char teamLetter)
+        -:  305:{
+      336:  306:    bool match= false;
+      336:  307:    int teamNum=0;
+        -:  308:
+     1179:  309:    for (int i = 0; i < NUMTEAMS && !match ; i++)
+        -:  310:    {
+      843:  311:	if (teamLetter == TEAMCHARS[i])
+        -:  312:	{
+      336:  313:	    teamNum = i;
+      336:  314:	    match=true;
+        -:  315:	}	  
+        -:  316:	
+        -:  317:	else 
+      507:  318:	    teamNum++;
+        -:  319:    }
+        -:  320:    
+        -:  321:  // stub
+      336:  322:    return teamNum;
+        -:  323:}
+        -:  324:
+      173:  325:bool HockeyList::search(int pos, ListPtr &item, int &team) const
+        -:  326:{
+      173:  327:    team = 0; 
+      173:  328:    bool found = false;
+        -:  329:
+      173:  330:    item = head[team].next;
+      173:  331:    int number =0;
+      847:  332:    while (!found && team < NUMTEAMS)
+        -:  333:    {
+     1793:  334:	while(!found && item != &tail[team])
+        -:  335:	{
+      791:  336:	    number++;
+      791:  337:	    if (number == pos)
+        -:  338:	    {
+      168:  339:		found = true;
+        -:  340:	    }
+        -:  341:	    else 
+        -:  342:	    {
+        -:  343:
+      623:  344:		item = item -> next;
+        -:  345:	    }
+        -:  346:			
+        -:  347:	
+        -:  348:	}
+      501:  349:	if(!found)
+        -:  350:	{
+      333:  351:	    team++;
+      333:  352:	    item = head[team].next;
+        -:  353:	}
+        -:  354:    }
+      173:  355:    return found;
+        -:  356:}
+        -:  357:#if 1
+        -:  358:
+      323:  359:HockeyList::ListPtr HockeyList::createPlayer(const char name[], char position, 
+        -:  360:			  int goals, int assists,
+        -:  361:			  int goalsAgainst) const
+        -:  362:{
+      323:  363:    ListPtr list = new ListNode;
+      323:  364:    PlayerPtr player = new PlayerNode;
+      323:  365:    strncpy(player->name,name,MAXNAMELEN+1);
+      323:  366:    player->position = position;
+      323:  367:    player->goals = goals;
+      323:  368:    player->assists = assists;
+      323:  369:    player->goalsAgainst = goalsAgainst;
+      323:  370:    list->thePlayer = player;
+        -:  371:  // stub
+      323:  372:    return  list;
+        -:  373:}
+        -:  374:#endif
+      357:  375:void HockeyList::link(ListPtr item, int team)
+        -:  376:{
+      357:  377:    item->prev = tail[team].prev;
+      357:  378:    item->next = &tail[team];
+      357:  379:    tail[team].prev -> next = item;
+      357:  380:    tail[team].prev = item;
+        -:  381: // stub
+        -:  382:  
+      357:  383:}
+        -:  384:
+      357:  385:void HockeyList::unlink(ListPtr item)
+        -:  386:{
+      357:  387:    item -> next-> prev = item -> prev;
+      357:  388:    item -> prev -> next = item -> next;
+        -:  389:    //item  = NULL;
+        -:  390:  // stub
+        -:  391:  
+      357:  392:}
+        -:  393:
+       10:  394:void HockeyList::displayTeam(int team, int &position, ostream &out)const
+        -:  395:{
+        -:  396:    ListPtr current;
+       10:  397:    current = head[team].next;
+        -:  398:
+        -:  399:
+        -:  400:	
+       10:  401:	out << TEAMS[team]<<endl;
+        -:  402:	
+       35:  403:	while (current != &tail[team])
+        -:  404:	{
+        -:  405:	    
+        -:  406:	    out <<left << position  << ":\t "<<left << setw(24) <<current ->thePlayer -> name 
+        -:  407:		 <<  setw(4) <<current -> thePlayer -> goals << setw(4)  << "goals   " << setw(4) 
+       15:  408:		 <<  setw(4)<< current -> thePlayer ->assists << setw(4)<<  "assists   " ;
+        -:  409:	    
+       15:  410:	    if (current -> thePlayer -> position == GOAL)
+        -:  411:	    {
+        5:  412:		out << setw(4)<<current ->thePlayer -> goalsAgainst<<setw(4) << "goals against";
+        -:  413:	    }//end if
+       15:  414:	    out << endl;
+       15:  415:	    position++;
+       15:  416:	    current = current ->next;
+        -:  417:	}//end while
+       10:  418:	out <<endl;
+        -:  419:	
+        -:  420:
+       13:  421:}	
+        -:  422:    
+        -:  423: 
+        -:  424:

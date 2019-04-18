@@ -1,0 +1,62 @@
+LOAD_TEST_MODS=HockeyList_Load_Tests.o HockeyList.o
+WRITE_TEST_MODS=HockeyList_Write_Tests.o HockeyList.o
+DISPLAY_TEST_MODS=HockeyList_Display_Tests.o HockeyList.o
+GETTEAM_TEST_MODS=HockeyList_GetTeam_Tests.o HockeyList.o
+LOOKUP_TEST_MODS=HockeyList_Lookup_Tests.o HockeyList.o
+MOVE_TEST_MODS=HockeyList_Move_Tests.o HockeyList.o
+ACTIVATE_TEST_MODS=HockeyList_Activate_Tests.o HockeyList.o
+UPDATE_TEST_MODS=HockeyList_Update_Tests.o HockeyList.o
+
+ALL_TEST_MODS=HockeyList_Load_Tests.o HockeyList_Write_Tests.o HockeyList_Display_Tests.o HockeyList_GetTeam_Tests.o HockeyList_Lookup_Tests.o HockeyList_Move_Tests.o HockeyList_Activate_Tests.o HockeyList_Update_Tests.o Compare.o HockeyList.o
+
+GCOVFLAGS=-fprofile-arcs -ftest-coverage
+GTFLAGS=-lgtest -lgtest_main
+CPPFLAGS=-ansi -pedantic-errors -Wall -Wconversion
+C_GFLAGS=$(CPPFLAGS) $(GCOVFLAGS)
+
+tests: clean testall
+
+HockeyList_Load_Tests: $(LOAD_TEST_MODS)
+	g++ $(GTFLAGS) $(LOAD_TEST_MODS) $(C_GFLAGS) -o HockeyList_Load_Tests
+	valgrind --leak-check=yes --track-origins=yes HockeyList_Load_Tests
+
+HockeyList_Write_Tests: $(WRITE_TEST_MODS)
+	g++ $(GTFLAGS) $(WRITE_TEST_MODS) $(C_GFLAGS) -o HockeyList_Write_Tests
+	valgrind --leak-check=yes --track-origins=yes HockeyList_Write_Tests
+
+HockeyList_Display_Tests: $(DISPLAY_TEST_MODS)
+	g++ $(GTFLAGS) $(DISPLAY_TEST_MODS) $(C_GFLAGS) -o HockeyList_Display_Tests
+	valgrind --leak-check=yes --track-origins=yes HockeyList_Display_Tests
+
+HockeyList_GetTeam_Tests: $(GETTEAM_TEST_MODS)
+	g++ $(GTFLAGS) $(GETTEAM_TEST_MODS) $(C_GFLAGS) -o HockeyList_GetTeam_Tests
+	valgrind --leak-check=yes --track-origins=yes HockeyList_GetTeam_Tests
+
+HockeyList_Lookup_Tests: $(LOOKUP_TEST_MODS)
+	g++ $(GTFLAGS) $(LOOKUP_TEST_MODS) $(C_GFLAGS) -o HockeyList_Lookup_Tests
+	valgrind --leak-check=yes --track-origins=yes HockeyList_Lookup_Tests
+
+HockeyList_Move_Tests: $(MOVE_TEST_MODS)
+	g++ $(GTFLAGS) $(MOVE_TEST_MODS) $(C_GFLAGS) -o HockeyList_Move_Tests
+	valgrind --leak-check=yes --track-origins=yes HockeyList_Move_Tests
+
+HockeyList_Activate_Tests: $(ACTIVATE_TEST_MODS)
+	g++ $(GTFLAGS) $(ACTIVATE_TEST_MODS) $(C_GFLAGS) -o HockeyList_Activate_Tests
+	valgrind --leak-check=yes --track-origins=yes HockeyList_Activate_Tests
+
+HockeyList_Update_Tests: $(UPDATE_TEST_MODS)
+	g++ $(GTFLAGS) $(UPDATE_TEST_MODS) $(C_GFLAGS) -o HockeyList_Update_Tests
+	valgrind --leak-check=yes --track-origins=yes HockeyList_Update_Tests
+
+testall: testall.o $(ALL_TEST_MODS)
+	g++ $(GTFLAGS) $(ALL_TEST_MODS) $(C_GFLAGS) -o testall
+	valgrind --leak-check=yes --track-origins=yes testall
+	gcov HockeyList.cpp 2> /dev/null | grep -A 1 HockeyList.cpp
+
+clean:
+	/bin/rm -f *~ *.o listTests *.gcda *.gcov *.gcno *Tests testall core
+	cp /users/library/csis/comp1633/assignments/a4/p2_tests/*.o .
+
+HockeyList.o: HockeyList.cpp HockeyList.h
+	g++ $(GTFLAGS) $(C_GFLAGS) -c HockeyList.cpp
+

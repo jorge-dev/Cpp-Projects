@@ -1,0 +1,893 @@
+Script started on Thu 22 Mar 2018 12:12:37 PM MDT
+[0;32mJorge.ins@mru [1;33m[0;33m~/a4p2 : [0mls -al
+total 80
+drwxr-xr-x  3 javil686 students  4096 Mar 22 12:12 [0m[01;34m.[0m
+drwx--x--x 17 javil686 students  4096 Mar 22 08:06 [01;34m..[0m
+-rw-r--r--  1 javil686 students 16697 Mar 22 12:09 a4p2.cpp
+-rw-r--r--  1 javil686 students  8601 Mar 22 12:09 HockeyList.cpp
+-rw-r--r--  1 javil686 students  4113 Mar 22 12:09 HockeyList.h
+-rw-r--r--  1 javil686 students  3937 Mar 22 12:09 ioutil.cpp
+-rw-r--r--  1 javil686 students  4254 Mar 22 12:09 ioutil.h
+-rw-r--r--  1 javil686 students   960 Mar 22 12:09 makefile
+drwxr-xr-x  2 javil686 students  4096 Mar 22 12:12 [01;34mp2_tests[0m
+-rw-r--r--  1 javil686 students   341 Mar 22 12:09 team_rosters.txt
+-rw-r--r--  1 javil686 students  4464 Mar 22 12:10 test_HockeyList.cpp
+-rw-r--r--  1 javil686 students     0 Mar 22 12:12 typescript
+[m[0;32mJorge.ins@mru [1;33m[0;33m~/a4p2 : [0mcat HockeyList.h
+/* 
+   Name:        Jorge Avila
+   Email:       javil686@mtroyal.ca
+   Course:      COMP 1633-001
+   Assignment:  #4
+   Due Date:    March 21, 2018
+   Instructor:  Paul Pospisil
+
+   Source File: a4p2.cpp
+
+   The "HOCKEYLIST" class holds the player information from 3  Woman Hockey 
+   teams and injury reserve   =  Team CANANDA, USA, FINLAND and INJURY RESERVE.
+
+   PUBLIC METHOD SPECIFICATION:
+      
+       load: initializes every tema with its corresponding players if any exist
+             (returns the number total number of players)
+
+       write: writes the information of every Team player into a file using the 
+              following format: "team letter, position, goals, assists, goals agianst,
+	                         name ".
+				 
+       display: displays all players organized by teams and assigns a number to every 
+                player.
+		
+       move: moves a player from a specifeid country teams and moves them into the injury list
+             (returns true if the player was found and is a member of a country team,
+	      and false if its in the injury reserve list or player not found).
+       
+       activate: moves a player from the injury list into a specified country team
+                 (returns true if the player was found and is in the injury reserve list, 
+		  and false if its not in the injury reserve list or player not found)
+		  
+       update: updates active(players memeber of country teamas) players' goals, assists, 
+               and -if goalie- its goals against.
+               (returns true if the player is found and is a member of a country team,
+	        and false if the player is in the injury reserve list or not found )
+		
+       lookup: looks for a player in the list using its position and if found, 
+               retruns PlayerNode loaded with its information
+	       
+       getTeam: determines a  player's team when given the player's position in the list
+                (returns the corresponding team first letter if found; 
+
+*/
+
+
+#ifndef HOCKEYLIST_H
+#define HOCKEYLIST_H
+
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+using namespace std;
+
+const int MAXNAMELEN = 25;
+const int MINNAMELEN = 1;
+
+const int NUMTEAMS = 4;
+const int INJURYLISTPOSITION = NUMTEAMS-1;
+
+typedef char teamname[MAXNAMELEN+1];		// one team name is a c-string
+
+const teamname TEAMS[NUMTEAMS] = {"Team Canada:",		
+                                  "Team Finland:", 
+                                  "Team USA:",
+                                  "Injury Reserve:" };
+
+const char TEAMCHARS[NUMTEAMS] = {'C', 'F', 'U', 'I'};
+
+const char FORWARD = 'f';
+const char DEFENCE = 'd';
+const char GOAL = 'g';
+
+const int NAMEWIDTH = 26;
+const int TEAMWIDTH = 6;
+const int GOALWIDTH = 2;
+const int ASSISTWIDTH = 7;
+
+////////////////////////////////////////////////
+// Player node structure
+////////////////////////////////////////////////
+
+typedef struct PlayerNode *PlayerPtr;
+
+struct PlayerNode
+{
+   char name[MAXNAMELEN+1];
+   char position;
+   int goals;
+   int assists;
+   int goalsAgainst;
+};
+
+
+
+////////////////////////////////////////////////
+// 
+////////////////////////////////////////////////
+
+class HockeyList
+{
+ public:
+  HockeyList();
+  ~HockeyList();
+  int  load(istream &infile);
+  void write(ostream &out) const;
+  void display(ostream &out) const;
+  bool move(int position);
+  bool activate(int position, char team);
+  bool update(int position, int goals, int assists, int goalsAgainst);
+  void lookup(int position, PlayerNode &player, bool &found) const;
+  char getTeam(int position) const;
+ private:
+
+  struct ListNode
+  {
+    ListNode *next;
+    ListNode *prev;
+    PlayerPtr thePlayer;
+  };
+
+  typedef ListNode *ListPtr;
+
+  int findTeamNumber(char teamLetter);
+  bool search(int pos, ListPtr &item, int &team) const;
+  ListPtr createPlayer(const char name[], char position, int goals, int assists, 
+                        int goalsAgainst) const;
+  void link(ListPtr item, int team);
+  void unlink(ListPtr item);
+  void displayTeam(int team, int &position, ostream &out) const;
+
+  ListNode head[NUMTEAMS];
+  ListNode tail[NUMTEAMS];
+};
+
+#endif
+[0;32mJorge.ins@mru [1;33m[0;33m~/a4p2 : [0mcat HockeyList.cpp 
+#include "HockeyList.h"
+#include <iostream>
+#include <cstring>
+
+/*
+  INTERNAL IMPLEMENTATION:
+       findTeamNumber is implemente inside update.
+       
+       search is implemented inside move,activate,update,lookup,
+                                    and getTeam
+				    
+       createPlayer is implemented inside load
+       
+       link is implemented inside  update,activate and move
+				  
+       unlink is implemented inside ~HockeyList, update,activate 
+                                  and move
+
+				  
+       displayTeam is implemented inside display
+
+  PRIVATE METHOD SPECIFICATION:
+  
+       findTeamNumber: takes a teams first letter caharacter and 
+                       converts it to the correct array index for 
+		       that team (returns the team index number).
+
+       search: searches a specific player in the list and if found
+               it updates and returns the player's team and a 
+               PlayerNode with the rest of the information.
+	       (returns true if the player is found, false if not)
+
+       createPlayer: creates new player node by dinamiacally allocating
+                     the necessary memory needed to create players 
+		     during run time.
+		     (returns a ListPtr loaded with players information)
+
+       link: correctly links and connects a new node into the link list
+             by redirecting the pointers to avoid a memory leak
+
+       unlinks: detaches a node from the link list by correctly redirecting
+                necessary pointers to extract the neede node from the 
+                current list.
+
+       displayTeam: given a specified team, it traverses the specified team's
+                    list and prints all the players and its information one
+		    by one using the following format:
+		    "number, player name, goals, assists, goals against"
+		  
+     
+
+
+ */
+
+
+
+//=======================Public=============================
+
+HockeyList::HockeyList()
+{
+    for (int i = 0; i < 4; i++)
+    {
+	head[i].next = &tail[i];
+	tail[i].prev = &head[i]; 
+    }
+  // stub
+}
+
+HockeyList::~HockeyList()
+{
+
+    ListPtr temp;
+    for (int i = 0; i < NUMTEAMS;i++)
+    {
+	temp = head[i].next;
+	while (temp != &tail[i])
+	{
+	    //head[i].next = temp -> next;
+	    unlink(temp);
+	    delete temp -> thePlayer;
+	    delete temp;
+	    temp = head[i].next;
+	}
+	//head[i].next == &tail[i];
+	
+    }
+    
+  // stub
+}
+
+int HockeyList::load(istream &infile)
+{
+    char name [MAXNAMELEN+1];
+    char position;
+    int goals;
+    int assists;
+    int goalsAgainst;
+    char team;
+    int numPlayers = 0;
+    int teamNumber;
+    ListPtr listPlayer;
+
+    infile >> team;
+    
+    while (!infile.eof())
+    {
+	teamNumber = findTeamNumber(team);
+	
+	infile >> position;
+	infile >> goals;
+	infile >> assists;
+	infile >> goalsAgainst;
+	infile.ignore();
+	infile.getline(name,MAXNAMELEN + 1);
+     
+	listPlayer = createPlayer(name, position, goals, assists, 
+					   goalsAgainst);
+
+	link(listPlayer, teamNumber);
+
+	infile >> team;
+	
+	numPlayers++;
+
+    }
+
+    
+    
+  // stub
+    return numPlayers;
+}
+
+void HockeyList::write(ostream &out)const
+{
+    ListPtr current;
+
+    for (int i = 0; i < NUMTEAMS; i++)
+    {
+	    current = head[i].next;
+	while (current != &tail[i])
+	{
+	    out << TEAMCHARS[i]<< ' ';
+	    out << current -> thePlayer -> position<< ' ';
+	    out << current -> thePlayer -> goals<< ' ';
+	    out << current -> thePlayer -> assists<< ' ';
+	    out << current -> thePlayer -> goalsAgainst<< ' ';
+	    out << current -> thePlayer -> name;
+	    out << endl;
+	    current = current ->next;
+	    
+	}
+    }
+    
+    
+    
+  // stub
+}
+
+void HockeyList::display(ostream &out) const
+{
+    int position =1;
+    int numEmpty = 0;
+//    cout << "--------------------------------------------"
+//	 << "-----------------------------------"<<endl<<endl;
+   
+    
+    
+    for (int i = 0; i < NUMTEAMS; i++)
+    {
+	 if (head[i].next == &tail[i])
+	 {
+	     numEmpty++;
+	 }
+	 else 
+	 {
+	     displayTeam(i, position, out);
+	     
+	 }
+
+    }
+    
+    if (numEmpty == NUMTEAMS)
+    {
+	out << endl;
+	out << "Empty list. There's nothing to display"<<endl;
+	out << endl;
+	
+    }
+ 
+    //   cout << "--------------------------------------------"
+//	 << "-----------------------------------"<<endl;
+// stub
+}
+
+bool HockeyList:: move(int position)
+{
+    bool found = false;
+    bool success = false;
+    int team =0 ;
+    ListPtr item;
+ 
+
+    success =search(position,item,team);
+    
+    if (success && INJURYLISTPOSITION != team)
+    {
+	found = true;
+	unlink(item);
+	link(item ,INJURYLISTPOSITION);
+    }
+       
+    
+  // stub
+    return found;
+}
+
+bool HockeyList::activate(int position, char team)
+{
+    bool found = false;
+    bool success;
+    int teamNumber =0;
+    int teamTemp;
+    ListPtr item;
+ 
+    teamTemp = findTeamNumber(team);
+ 
+    success =search(position,item,teamNumber);
+    
+    
+    if (success && teamNumber == INJURYLISTPOSITION )
+    {
+
+	found = true;
+	unlink(item);
+	link(item ,teamTemp);
+    }
+        
+    
+
+  // stub
+    return found;
+}
+
+bool HockeyList::update(int position, int goals, int assists, int goalsAgainst)
+{
+    bool found;
+    bool success = false;
+    ListPtr item;
+    int team;
+    found = search(position,item,team);
+    
+    if (found && team != INJURYLISTPOSITION )
+    {
+	
+	success = true;
+	unlink(item);
+	item -> thePlayer -> goals += goals;
+	item -> thePlayer -> assists += assists;
+	
+	if (item -> thePlayer -> position == GOAL)
+	    item -> thePlayer -> goalsAgainst += goalsAgainst;
+	
+	link(item, team);
+    }
+    
+  // stub
+    return success;
+}
+
+void HockeyList::lookup(int position, PlayerNode &player, bool &found) const
+{
+    ListPtr item;
+    int team = 0;
+
+    found = search(position,item,team);
+    if (found)
+    {
+	strncpy(player.name,item -> thePlayer -> name,MAXNAMELEN+1);
+	player.assists = item -> thePlayer -> assists;
+	player.goals = item -> thePlayer -> goals;
+	player.goalsAgainst = item -> thePlayer -> goalsAgainst;
+	player.position = item -> thePlayer -> position;
+    }
+  // stub
+}
+
+char HockeyList::getTeam(int position) const
+{
+    bool found;
+    int teamNum =0;
+    char team;
+    ListPtr item;
+    found =search(position,item,teamNum);
+    if (found)
+    {
+	team = TEAMCHARS[teamNum];
+    }
+    return team;
+}
+
+
+//==============================Private===============================================
+
+int HockeyList::findTeamNumber(char teamLetter)
+{
+    bool match= false;
+    int teamNum=0;
+
+    for (int i = 0; i < NUMTEAMS && !match ; i++)
+    {
+	if (teamLetter == TEAMCHARS[i])
+	{
+	    teamNum = i;
+	    match=true;
+	}	  
+	
+	else 
+	    teamNum++;
+    }
+    
+  // stub
+    return teamNum;
+}
+
+bool HockeyList::search(int pos, ListPtr &item, int &team) const
+{
+    team = 0; 
+    bool found = false;
+
+    item = head[team].next;
+    int number =0;
+    while (!found && team < NUMTEAMS)
+    {
+	while(!found && item != &tail[team])
+	{
+	    number++;
+	    if (number == pos)
+	    {
+		found = true;
+	    }
+	    else 
+	    {
+
+		item = item -> next;
+	    }
+			
+	
+	}
+	if(!found)
+	{
+	    team++;
+	    item = head[team].next;
+	}
+    }
+    return found;
+}
+#if 1
+
+HockeyList::ListPtr HockeyList::createPlayer(const char name[], char position, 
+			  int goals, int assists,
+			  int goalsAgainst) const
+{
+    ListPtr list = new ListNode;
+    PlayerPtr player = new PlayerNode;
+    strncpy(player->name,name,MAXNAMELEN+1);
+    player->position = position;
+    player->goals = goals;
+    player->assists = assists;
+    player->goalsAgainst = goalsAgainst;
+    list->thePlayer = player;
+  // stub
+    return  list;
+}
+#endif
+void HockeyList::link(ListPtr item, int team)
+{
+    item->prev = tail[team].prev;
+    item->next = &tail[team];
+    tail[team].prev -> next = item;
+    tail[team].prev = item;
+ // stub
+  
+}
+
+void HockeyList::unlink(ListPtr item)
+{
+    item -> next-> prev = item -> prev;
+    item -> prev -> next = item -> next;
+    //item  = NULL;
+  // stub
+  
+}
+
+void HockeyList::displayTeam(int team, int &position, ostream &out)const
+{
+    ListPtr current;
+    current = head[team].next;
+
+
+	
+	out << TEAMS[team]<<endl;
+	
+	while (current != &tail[team])
+	{
+	    
+	    out <<left << position  << ":\t "<<left << setw(24) <<current ->thePlayer -> name 
+		 <<  setw(4) <<current -> thePlayer -> goals << setw(4)  << "goals   " << setw(4) 
+		 <<  setw(4)<< current -> thePlayer ->assists << setw(4)<<  "assists   " ;
+	    
+	    if (current -> thePlayer -> position == GOAL)
+	    {
+		out << setw(4)<<current ->thePlayer -> goalsAgainst<<setw(4) << "goals against";
+	    }//end if
+	    out << endl;
+	    position++;
+	    current = current ->next;
+	}//end while
+	out <<endl;
+	
+
+}	
+    
+ 
+
+[0;32mJorge.ins@mru [1;33m[0;33m~/a4p2 : [0mcat makefile 
+TARGET=a4p2
+MODULES=a4p2.o HockeyList.o ioutil.o
+MODULETEST =test_HockeyList.o HockeyList.o HockeyList.h
+CPPFLAGS=-ansi -pedantic-errors -Wall -Wconversion
+GCOVFLAGS=-fprofile-arcs -ftest-coverage
+GTFLAGS=-lgtest -lgtest_main
+TESTS=test_HockeyList
+GCOVFILE=test_HockeyList
+
+$(TARGET): $(MODULES)
+	g++  $(GTFLAGS) $(MODULES) $(GCOVFLAGS) -o $(TARGET)
+
+$(TESTS): $(MODULETEST) 
+	g++  $(GTFLAGS) $(GCOVFLAGS) $(MODULETEST) -o $(TESTS)
+	$(TESTS)	
+	gcov $(GCOVFILE).cpp 2> /dev/null | grep -A 1 $(GCOVFILE).cpp
+clean:
+	/bin/rm -f *~ *.o $(TARGET) $(TESTS) *.gcda *.gcov *.gcno
+
+all:   clean $(TARGET) $(TESTS) 
+
+
+$(TARGET).o: $(TARGET).cpp HockeyList.h ioutil.h 
+	g++ $(CPPFLAGS) $(GCOVFLAGS) -c $(TARGET).cpp
+
+ioutil.o : ioutil.cpp ioutil.h
+	g++ $(CPPFLAGS) $(GCOVFLAGS) -c ioutil.cpp	
+
+HockeyList.o: HockeyList.cpp HockeyList.h
+	g++ $(CPPFLAGS) $(GCOVFLAGS)  -c HockeyList.cpp
+
+$(TESTS).o: $(TESTS).cpp HockeyList.h
+	g++ $(CPPFLAGS) $(GCOVFLAGS) -c $(TESTS).cpp
+
+[0;32mJorge.ins@mru [1;33m[0;33m~/a4p2 : [0mcd p2_tests/
+[0;32mJorge.ins@mru [1;33m[0;33m~/a4p2/p2_tests : [0mls -al
+total 1132
+drwxr-xr-x 2 javil686 students   4096 Mar 22 12:12 [0m[01;34m.[0m
+drwxr-xr-x 3 javil686 students   4096 Mar 22 12:12 [01;34m..[0m
+-rw-r--r-- 1 javil686 students   3200 Mar 22 12:12 Compare.o
+-rw-r--r-- 1 javil686 students 195176 Mar 22 12:12 HockeyList_Activate_Tests.o
+-rw-r--r-- 1 javil686 students   8601 Mar 22 12:12 HockeyList.cpp
+-rw-r--r-- 1 javil686 students  99016 Mar 22 12:12 HockeyList_Display_Tests.o
+-rw-r--r-- 1 javil686 students  68656 Mar 22 12:12 HockeyList_GetTeam_Tests.o
+-rw-r--r-- 1 javil686 students   4113 Mar 22 12:12 HockeyList.h
+-rw-r--r-- 1 javil686 students  68520 Mar 22 12:12 HockeyList_Load_Tests.o
+-rw-r--r-- 1 javil686 students  99200 Mar 22 12:12 HockeyList_Lookup_Tests.o
+-rw-r--r-- 1 javil686 students 197312 Mar 22 12:12 HockeyList_Move_Tests.o
+-rw-r--r-- 1 javil686 students 184344 Mar 22 12:12 HockeyList_Update_Tests.o
+-rw-r--r-- 1 javil686 students 187144 Mar 22 12:12 HockeyList_Write_Tests.o
+-rw-r--r-- 1 javil686 students   3624 Mar 22 12:12 testall.o
+-rw-r--r-- 1 javil686 students   2840 Mar 22 12:12 testmakefile
+[m[0;32mJorge.ins@mru [1;33m[0;33m~/a4p2/p2_tests : [0mmake -f testmakefile 
+/bin/rm -f *~ *.o listTests *.gcda *.gcov *.gcno *Tests testall core
+cp /users/library/csis/comp1633/assignments/a4/p2_tests/*.o .
+g++ -lgtest -lgtest_main -ansi -pedantic-errors -Wall -Wconversion -fprofile-arcs -ftest-coverage -c HockeyList.cpp
+g++ -lgtest -lgtest_main HockeyList_Load_Tests.o HockeyList_Write_Tests.o HockeyList_Display_Tests.o HockeyList_GetTeam_Tests.o HockeyList_Lookup_Tests.o HockeyList_Move_Tests.o HockeyList_Activate_Tests.o HockeyList_Update_Tests.o Compare.o HockeyList.o -ansi -pedantic-errors -Wall -Wconversion -fprofile-arcs -ftest-coverage -o testall
+valgrind --leak-check=yes --track-origins=yes testall
+==30440== Memcheck, a memory error detector
+==30440== Copyright (C) 2002-2012, and GNU GPL'd, by Julian Seward et al.
+==30440== Using Valgrind-3.8.1 and LibVEX; rerun with -h for copyright info
+==30440== Command: testall
+==30440== 
+Running main() from gtest_main.cc
+[==========] Running 63 tests from 8 test cases.
+[----------] Global test environment set-up.
+[----------] 12 tests from HockeyList_Update_Tests
+[ RUN      ] HockeyList_Update_Tests._emptyList_update
+[       OK ] HockeyList_Update_Tests._emptyList_update (42 ms)
+[ RUN      ] HockeyList_Update_Tests._update_player_on_injury_list
+[       OK ] HockeyList_Update_Tests._update_player_on_injury_list (45 ms)
+[ RUN      ] HockeyList_Update_Tests._update_zeros_only_player_position_changes
+[       OK ] HockeyList_Update_Tests._update_zeros_only_player_position_changes (22 ms)
+[ RUN      ] HockeyList_Update_Tests._update_nongoalie_GA_only_player_position_changes
+[       OK ] HockeyList_Update_Tests._update_nongoalie_GA_only_player_position_changes (14 ms)
+[ RUN      ] HockeyList_Update_Tests._update_nongoalie_goalsOnly_player_position_changes
+[       OK ] HockeyList_Update_Tests._update_nongoalie_goalsOnly_player_position_changes (14 ms)
+[ RUN      ] HockeyList_Update_Tests._update_nongoalie_assistsOnly_player_position_unchanged
+[       OK ] HockeyList_Update_Tests._update_nongoalie_assistsOnly_player_position_unchanged (10 ms)
+[ RUN      ] HockeyList_Update_Tests._update_nongoalie_both_player_position_unchanged
+[       OK ] HockeyList_Update_Tests._update_nongoalie_both_player_position_unchanged (10 ms)
+[ RUN      ] HockeyList_Update_Tests._update_goalie_GA_only_player_position_changes
+[       OK ] HockeyList_Update_Tests._update_goalie_GA_only_player_position_changes (16 ms)
+[ RUN      ] HockeyList_Update_Tests._update_goalie_GA_goals_player_position_changes
+[       OK ] HockeyList_Update_Tests._update_goalie_GA_goals_player_position_changes (14 ms)
+[ RUN      ] HockeyList_Update_Tests._update_goalie_GA_assists_player_position_unchanged
+[       OK ] HockeyList_Update_Tests._update_goalie_GA_assists_player_position_unchanged (11 ms)
+[ RUN      ] HockeyList_Update_Tests._update_goalie_GA_both_player_position_unchanged
+[       OK ] HockeyList_Update_Tests._update_goalie_GA_both_player_position_unchanged (10 ms)
+[ RUN      ] HockeyList_Update_Tests._update_goalie_noGA_both_player_position_unchanged
+[       OK ] HockeyList_Update_Tests._update_goalie_noGA_both_player_position_unchanged (10 ms)
+[----------] 12 tests from HockeyList_Update_Tests (247 ms total)
+
+[----------] 8 tests from HockeyList_Activate_Tests
+[ RUN      ] HockeyList_Activate_Tests._activate_emptyList
+[       OK ] HockeyList_Activate_Tests._activate_emptyList (9 ms)
+[ RUN      ] HockeyList_Activate_Tests._activate_active_player
+[       OK ] HockeyList_Activate_Tests._activate_active_player (7 ms)
+[ RUN      ] HockeyList_Activate_Tests._empty_teams_activate_to_first_team
+[       OK ] HockeyList_Activate_Tests._empty_teams_activate_to_first_team (28 ms)
+[ RUN      ] HockeyList_Activate_Tests._empty_teams_activate_to_third_team
+[       OK ] HockeyList_Activate_Tests._empty_teams_activate_to_third_team (22 ms)
+[ RUN      ] HockeyList_Activate_Tests._empty_teams_activate_to_second_team
+[       OK ] HockeyList_Activate_Tests._empty_teams_activate_to_second_team (22 ms)
+[ RUN      ] HockeyList_Activate_Tests._one_activation_to_each_empty_team_empties_injury_list
+[       OK ] HockeyList_Activate_Tests._one_activation_to_each_empty_team_empties_injury_list (41 ms)
+[ RUN      ] HockeyList_Activate_Tests._activate_one_to_each_non_empty_team
+[       OK ] HockeyList_Activate_Tests._activate_one_to_each_non_empty_team (48 ms)
+[ RUN      ] HockeyList_Activate_Tests._activate_two_players_to_one_non_empty_team
+[       OK ] HockeyList_Activate_Tests._activate_two_players_to_one_non_empty_team (30 ms)
+[----------] 8 tests from HockeyList_Activate_Tests (208 ms total)
+
+[----------] 9 tests from HockeyList_Move_Tests
+[ RUN      ] HockeyList_Move_Tests._emptyList_shouldSetFoundFalse
+[       OK ] HockeyList_Move_Tests._emptyList_shouldSetFoundFalse (8 ms)
+[ RUN      ] HockeyList_Move_Tests._non_emptyList_but_already_on_injury_list
+[       OK ] HockeyList_Move_Tests._non_emptyList_but_already_on_injury_list (6 ms)
+[ RUN      ] HockeyList_Move_Tests._first_player_on_non_empty_list
+[       OK ] HockeyList_Move_Tests._first_player_on_non_empty_list (17 ms)
+[ RUN      ] HockeyList_Move_Tests._middle_player_on_non_empty_list
+[       OK ] HockeyList_Move_Tests._middle_player_on_non_empty_list (15 ms)
+[ RUN      ] HockeyList_Move_Tests._last_active_player_non_empty_list
+[       OK ] HockeyList_Move_Tests._last_active_player_non_empty_list (15 ms)
+[ RUN      ] HockeyList_Move_Tests._empty_first_team_on_list
+[       OK ] HockeyList_Move_Tests._empty_first_team_on_list (26 ms)
+[ RUN      ] HockeyList_Move_Tests._empty_second_team_on_list
+[       OK ] HockeyList_Move_Tests._empty_second_team_on_list (35 ms)
+[ RUN      ] HockeyList_Move_Tests._empty_third_team_on_list
+[       OK ] HockeyList_Move_Tests._empty_third_team_on_list (26 ms)
+[ RUN      ] HockeyList_Move_Tests._empty_all_teams_on_list
+[       OK ] HockeyList_Move_Tests._empty_all_teams_on_list (33 ms)
+[----------] 9 tests from HockeyList_Move_Tests (186 ms total)
+
+[----------] 6 tests from HockeyList_Lookup_Tests
+[ RUN      ] HockeyList_Lookup_Tests._emptyList
+[       OK ] HockeyList_Lookup_Tests._emptyList (8 ms)
+[ RUN      ] HockeyList_Lookup_Tests._non_emptyList_but_position_after_end
+[       OK ] HockeyList_Lookup_Tests._non_emptyList_but_position_after_end (6 ms)
+[ RUN      ] HockeyList_Lookup_Tests._first_player_on_first_non_emptyList
+[       OK ] HockeyList_Lookup_Tests._first_player_on_first_non_emptyList (9 ms)
+[ RUN      ] HockeyList_Lookup_Tests._middle_player_on_second_non_emptyList
+[       OK ] HockeyList_Lookup_Tests._middle_player_on_second_non_emptyList (10 ms)
+[ RUN      ] HockeyList_Lookup_Tests._player_between_teams_on_third_non_emptyList
+[       OK ] HockeyList_Lookup_Tests._player_between_teams_on_third_non_emptyList (10 ms)
+[ RUN      ] HockeyList_Lookup_Tests._last_player_on_last_non_emptyList
+[       OK ] HockeyList_Lookup_Tests._last_player_on_last_non_emptyList (11 ms)
+[----------] 6 tests from HockeyList_Lookup_Tests (57 ms total)
+
+[----------] 4 tests from HockeyList_GetTeam_Tests
+[ RUN      ] HockeyList_GetTeam_Tests._getTeam_Canada_1st_player_team
+[       OK ] HockeyList_GetTeam_Tests._getTeam_Canada_1st_player_team (9 ms)
+[ RUN      ] HockeyList_GetTeam_Tests._getTeam_Finland_middle_player_in_list
+[       OK ] HockeyList_GetTeam_Tests._getTeam_Finland_middle_player_in_list (6 ms)
+[ RUN      ] HockeyList_GetTeam_Tests._getTeam_USA_1st_player_interior_list
+[       OK ] HockeyList_GetTeam_Tests._getTeam_USA_1st_player_interior_list (6 ms)
+[ RUN      ] HockeyList_GetTeam_Tests._getTeam_Injury_last_player_in_list
+[       OK ] HockeyList_GetTeam_Tests._getTeam_Injury_last_player_in_list (6 ms)
+[----------] 4 tests from HockeyList_GetTeam_Tests (28 ms total)
+
+[----------] 7 tests from HockeyList_Display_Tests
+[ RUN      ] HockeyList_Display_Tests._display_emptylist
+[       OK ] HockeyList_Display_Tests._display_emptylist (239 ms)
+[ RUN      ] HockeyList_Display_Tests._display_only_TeamCanada
+[       OK ] HockeyList_Display_Tests._display_only_TeamCanada (49 ms)
+[ RUN      ] HockeyList_Display_Tests._display_only_TeamFinland
+[       OK ] HockeyList_Display_Tests._display_only_TeamFinland (38 ms)
+[ RUN      ] HockeyList_Display_Tests._display_only_TeamUSA
+[       OK ] HockeyList_Display_Tests._display_only_TeamUSA (26 ms)
+[ RUN      ] HockeyList_Display_Tests._display_only_InjuryList
+[       OK ] HockeyList_Display_Tests._display_only_InjuryList (27 ms)
+[ RUN      ] HockeyList_Display_Tests._display_TeamFinland_InjuryList
+[       OK ] HockeyList_Display_Tests._display_TeamFinland_InjuryList (81 ms)
+[ RUN      ] HockeyList_Display_Tests._display_all_teams_with_multiple_players
+[       OK ] HockeyList_Display_Tests._display_all_teams_with_multiple_players (1002 ms)
+[----------] 7 tests from HockeyList_Display_Tests (1463 ms total)
+
+[----------] 13 tests from HockeyList_Write_Tests
+[ RUN      ] HockeyList_Write_Tests._emptyList_shouldWriteEmptyString
+[       OK ] HockeyList_Write_Tests._emptyList_shouldWriteEmptyString (11 ms)
+[ RUN      ] HockeyList_Write_Tests._Canada_only
+[       OK ] HockeyList_Write_Tests._Canada_only (12 ms)
+[ RUN      ] HockeyList_Write_Tests._Finland_only
+[       OK ] HockeyList_Write_Tests._Finland_only (7 ms)
+[ RUN      ] HockeyList_Write_Tests._USA_only
+[       OK ] HockeyList_Write_Tests._USA_only (7 ms)
+[ RUN      ] HockeyList_Write_Tests._Injury_only
+[       OK ] HockeyList_Write_Tests._Injury_only (6 ms)
+[ RUN      ] HockeyList_Write_Tests._Canada_two_same_team
+[       OK ] HockeyList_Write_Tests._Canada_two_same_team (7 ms)
+[ RUN      ] HockeyList_Write_Tests._Finland_two_same_team
+[       OK ] HockeyList_Write_Tests._Finland_two_same_team (6 ms)
+[ RUN      ] HockeyList_Write_Tests._USA_two_same_team
+[       OK ] HockeyList_Write_Tests._USA_two_same_team (6 ms)
+[ RUN      ] HockeyList_Write_Tests._Injury_two_same_team
+[       OK ] HockeyList_Write_Tests._Injury_two_same_team (6 ms)
+[ RUN      ] HockeyList_Write_Tests._two_different_teams_consecutive
+[       OK ] HockeyList_Write_Tests._two_different_teams_consecutive (6 ms)
+[ RUN      ] HockeyList_Write_Tests._two_different_teams_separated
+[       OK ] HockeyList_Write_Tests._two_different_teams_separated (6 ms)
+[ RUN      ] HockeyList_Write_Tests._four_players_all_different_teams
+[       OK ] HockeyList_Write_Tests._four_players_all_different_teams (8 ms)
+[ RUN      ] HockeyList_Write_Tests._multiple_players_on_all_four_teams
+[       OK ] HockeyList_Write_Tests._multiple_players_on_all_four_teams (8 ms)
+[----------] 13 tests from HockeyList_Write_Tests (101 ms total)
+
+[----------] 4 tests from HockeyList_Load_Tests
+[ RUN      ] HockeyList_Load_Tests._emptyFile_shouldReturn_0
+[       OK ] HockeyList_Load_Tests._emptyFile_shouldReturn_0 (8 ms)
+[ RUN      ] HockeyList_Load_Tests._fileWith_one_playershouldReturn_1
+[       OK ] HockeyList_Load_Tests._fileWith_one_playershouldReturn_1 (6 ms)
+[ RUN      ] HockeyList_Load_Tests._fileWIth_two_players_shouldReturn_2
+[       OK ] HockeyList_Load_Tests._fileWIth_two_players_shouldReturn_2 (4 ms)
+[ RUN      ] HockeyList_Load_Tests._fileWIth_nine_players_shouldReturn_9
+[       OK ] HockeyList_Load_Tests._fileWIth_nine_players_shouldReturn_9 (5 ms)
+[----------] 4 tests from HockeyList_Load_Tests (25 ms total)
+
+[----------] Global test environment tear-down
+[==========] 63 tests from 8 test cases ran. (2441 ms total)
+[  PASSED  ] 63 tests.
+==30440== 
+==30440== HEAP SUMMARY:
+==30440==     in use at exit: 0 bytes in 0 blocks
+==30440==   total heap usage: 43,453 allocs, 43,453 frees, 6,801,728 bytes allocated
+==30440== 
+==30440== All heap blocks were freed -- no leaks are possible
+==30440== 
+==30440== For counts of detected and suppressed errors, rerun with: -v
+==30440== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 8 from 6)
+gcov HockeyList.cpp 2> /dev/null | grep -A 1 HockeyList.cpp
+File 'HockeyList.cpp'
+Lines executed:100.00% of 159
+HockeyList.cpp:creating 'HockeyList.cpp.gcov'
+
+[0;32mJorge.ins@mru [1;33m[0;33m~/a4p2/p2_tests : [0m..
+[0;32mJorge.ins@mru [1;33m[0;33m~/a4p2 : [0mmake all
+/bin/rm -f *~ *.o a4p2 test_HockeyList *.gcda *.gcov *.gcno
+g++ -ansi -pedantic-errors -Wall -Wconversion -fprofile-arcs -ftest-coverage -c a4p2.cpp
+g++ -ansi -pedantic-errors -Wall -Wconversion -fprofile-arcs -ftest-coverage  -c HockeyList.cpp
+g++ -ansi -pedantic-errors -Wall -Wconversion -fprofile-arcs -ftest-coverage -c ioutil.cpp	
+g++  -lgtest -lgtest_main a4p2.o HockeyList.o ioutil.o -fprofile-arcs -ftest-coverage -o a4p2
+g++ -ansi -pedantic-errors -Wall -Wconversion -fprofile-arcs -ftest-coverage -c test_HockeyList.cpp
+g++  -lgtest -lgtest_main -fprofile-arcs -ftest-coverage test_HockeyList.o HockeyList.o HockeyList.h -o test_HockeyList
+test_HockeyList	
+Running main() from gtest_main.cc
+[==========] Running 8 tests from 1 test case.
+[----------] Global test environment set-up.
+[----------] 8 tests from test_HockeyList
+[ RUN      ] test_HockeyList.testLoad
+[       OK ] test_HockeyList.testLoad (0 ms)
+[ RUN      ] test_HockeyList.testDisplay
+[       OK ] test_HockeyList.testDisplay (0 ms)
+[ RUN      ] test_HockeyList.testWrite
+[       OK ] test_HockeyList.testWrite (0 ms)
+[ RUN      ] test_HockeyList.testLookup
+[       OK ] test_HockeyList.testLookup (0 ms)
+[ RUN      ] test_HockeyList.testMove
+[       OK ] test_HockeyList.testMove (0 ms)
+[ RUN      ] test_HockeyList.testActivate
+[       OK ] test_HockeyList.testActivate (0 ms)
+[ RUN      ] test_HockeyList.testUpdate
+[       OK ] test_HockeyList.testUpdate (0 ms)
+[ RUN      ] test_HockeyList.testGetTeam
+[       OK ] test_HockeyList.testGetTeam (0 ms)
+[----------] 8 tests from test_HockeyList (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 1 test case ran. (0 ms total)
+[  PASSED  ] 8 tests.
+gcov test_HockeyList.cpp 2> /dev/null | grep -A 1 test_HockeyList.cpp
+File 'test_HockeyList.cpp'
+Lines executed:100.00% of 100
+test_HockeyList.cpp:creating 'test_HockeyList.cpp.gcov'
+
+[0;32mJorge.ins@mru [1;33m[0;33m~/a4p2 : [0ma4p2
+Enter name of input file: team_rosters.txt
+
+Olympic Teams List Manager:
+
+d) display list
+m) move a player to injury reserve
+a) activate a player from injury reserve
+u) update player points
+s) show top scorer
+
+q) quit
+
+
+Your Choice:  s
+************************************************************
+
+Top Scorer is:
+
+Meghan Agosta  with 15 total points
+
+************************************************************
+
+
+Olympic Teams List Manager:
+
+d) display list
+m) move a player to injury reserve
+a) activate a player from injury reserve
+u) update player points
+s) show top scorer
+
+q) quit
+
+
+Your Choice:  1 q
+Enter name of output file: output.txt
+[0;32mJorge.ins@mru [1;33m[0;33m~/a4p2 : [0mexit
+exit
+
+Script done on Thu 22 Mar 2018 12:14:22 PM MDT

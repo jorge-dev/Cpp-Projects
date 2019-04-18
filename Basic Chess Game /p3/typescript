@@ -1,0 +1,1893 @@
+Script started on Mon 09 Apr 2018 09:55:05 PM MDT
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat game.cpp
+// Name:        Jorge Avila
+// Email:       javil686@mtroyal.ca
+// Course:      COMP 1633-001
+// Assignment:  #5
+// Due Date:    April 9, 2017
+// Instructor:  Paul Pospisil
+//
+// Source File: game.cpp
+
+/*
+Purpose:    A simplified chess game with a simple UI and 2 player mode.
+
+Detail:    This game relies on the most important chess rules but doesnt
+           check for check mate, special chess moves like capturing
+	   en passant and castling or pawn promotion.
+	   The chess piece rmove rules used in the game are the following
+	   
+	   King: can move any direction one step at a time.
+	   Queen: can move any direction.
+	   Bishop: move diagonally up and down
+	   Knight(Horse): moves L-like moves. can move either 2 spaces 
+	                 Horizontally and one vertically or 1 space 
+			 horizontally and 2 spaces vertically.
+	   Rook(Tower): move multiple steps horizontally or vertically
+	   Pawn: can move 2 spaces for its first move and only one
+	         space after. It can move diagonally forward one space 
+		 only if there is an opponent piece in that position. 
+
+Known Bugs || Assumptions
+No known bugs
+
+
+
+*/
+
+
+
+#include <iostream>
+
+#include "Board.h"
+#include "Piece.h"
+#include "Pawn.h"
+#include "King.h"
+#include "Queen.h"
+#include "Bishop.h"
+#include "Knight.h"
+#include "Rook.h"
+#include "ioutil.h"
+#include "helper.h"
+
+using namespace std;
+
+
+int main()
+{
+    Board test;
+
+   
+    bool turn = WHITE;
+    bool answer = false;
+    int fromX =0;
+    int toX = 0;
+    int fromY =0;
+    int toY = 0;
+
+    PiecePtr blackPiece=NULL;
+    PiecePtr whitePiece=NULL;
+    bool gameOver = false;
+    bool move = false;
+    initChess(test,blackPiece,whitePiece);    
+    cout << test;
+
+    cout <<"===================================================="
+	 <<"\n                  GAME INFO                       "
+	 <<endl;
+
+    cout <<"1) White Pieces are represented by UpperCase letters"
+	 <<endl
+	 <<"located at the bottom of table."<<endl<<endl;
+   
+     cout <<"2) Black Pieces are represented by LowerCase letters"
+	 <<endl
+	  <<"located at the top of table."<<endl<<endl;
+   
+     cout << "3) To exit the game, type -1,-1 in coordinates"
+	  <<endl<<endl;
+     cout <<"===================================================="
+	  <<endl<<endl;
+
+     cout<<"WHITE starts"<<endl<<endl;
+   
+
+    do
+    {
+	if (turn)
+	    cout << "It's WHITE's turn"<<endl<<endl;
+	else
+	    cout << "It's BLACK's turn"<<endl<<endl;
+
+	cout <<"**************   From   ***************"<<endl<<endl;;
+	fromX = readFromX();
+	fromY = readFromY();
+	answer = confirmQuit(fromX,fromY);
+
+	cout <<endl;
+	
+
+	if (!answer)
+	{
+	    cout <<endl<<"**************   To   ***************"<<endl<<endl;;
+	    toX = readToX();
+	    toY = readToY();
+	    answer = confirmQuit(toX,toY);
+	    cout <<endl;
+	}
+
+	if (!answer)
+	{
+	    move = test.move(turn,fromX,fromY,toX,toY);
+
+	    gameOver = isKingDead(test);
+	    
+	    if(move)
+	    {
+
+		cout << test;
+   		
+	    }
+	    
+	    if (!move)
+	    {
+		cout<<endl
+		    <<"-------------------------------------------------"
+		    <<endl
+		    <<"Sorry, that move is not allowed "
+		    <<endl
+		    <<"or what you are trying to move is empty."
+		    <<endl
+		    <<"Please Try again. "
+		    <<endl
+		    <<"--------------------------------------------------"
+		    << endl<<endl;
+		
+		turn =!turn;
+	    }
+
+	    	
+	}
+    
+	cout<<endl;
+	
+	turn = !turn;
+	
+	
+    }while(!answer && !gameOver);
+    if (gameOver)
+    {  
+	cout<<"======================================" 
+	    <<endl<<endl
+	    << "GAME OVER. the King has been killed!"
+	      << endl
+	      << "The winner is ";
+	
+	if (!turn == WHITE)
+	    cout <<"WHITE"<<endl;
+	else
+	    cout << "BLACK"<<endl;
+
+	cout<<endl
+	    << "Thanks for playing"
+	    <<endl << endl
+	    <<"======================================"<< endl; ;
+	
+    }  
+    else
+	cout<<endl
+	    << "Thanks for playing!"
+	    <<endl << endl;
+      
+   
+    
+    
+
+ return 0;
+}
+/*
+********************************************************************************
+Function: confirmQuit
+
+Purpose: checks if coordinates are both -1 
+
+Details: if coordinates are -1 it propts a confirmation and if y is typed 
+         it returns true.
+
+Input: 2 integers - x: x coordinate
+                  - y: y coordinate
+
+Return a bool - answer
+
+
+********************************************************************************
+*/
+bool confirmQuit(int x,int y)
+{
+    bool answer =false;
+    if(x == -1  && y == -1)
+	answer = exitGame();
+    
+    return answer;
+}
+
+/*
+********************************************************************************
+Function: readFromX
+
+Purpose: reads and error check for a from X coordinate input 
+
+Details: uses ioutil to check for invalid inputs and checks for out of 
+        bound coordinates. returns an integer until all conditions are met
+
+
+Return an int - x:  from x coordinate.
+
+
+********************************************************************************
+*/
+int readFromX ()
+{
+    int x;
+    bool xOK;
+    bool ctrlD = false;
+    
+	x = readInt (fromXPrompt, ctrlD);
+	
+	xOK = ((x >= -1) &&  (x < MAXROWS) );
+
+	while (ctrlD || !xOK)
+	{
+	    if (ctrlD)
+	    {
+	       cout << endl
+	       << "**** Ignoring ctrl-d - to abort the program type ctrl-c ****"
+	       << endl;
+	    }
+
+	    else
+		cout << "**** X coordinate can't be greater than " 
+		     << MAXROWS-1 
+		     <<" and less than -1"<<" ****"
+		     << endl;
+
+	    x = readInt (fromXPrompt, ctrlD);
+	    xOK = ((x >= -1) &&  (x < MAXROWS) );
+	    
+	    
+	}
+
+    return x;
+}
+
+
+/*
+********************************************************************************
+Function: readToX
+
+Purpose: reads and error check for a to X coordinate input 
+
+Details: uses ioutil to check for invalid inputs and checks for out of 
+        bound coordinates. returns an integer until all conditions are met
+
+
+Return an int - x:  to x coordinate.
+
+
+********************************************************************************
+*/
+int readToX ()
+{
+     int x;
+     
+     bool xOK;
+     bool ctrlD = false;
+     
+     x = readInt (toXPrompt, ctrlD);
+     xOK = ((x < MAXROWS) && (x >= -1));
+     
+     while (!xOK || ctrlD )
+     {
+	 if (ctrlD)
+	 {
+	     cout << endl
+		  << "**** Ignoring ctrl-d - to abort the program type ctrl-c ****"
+		  << endl;
+	 }
+	 
+	 else
+	 {
+	     cout << "**** X coordinate can't be greater than " 
+		  << MAXROWS-1 
+		  <<" and less than -1"<<" ****"
+		  << endl;
+	 }
+	 x = readInt (fromXPrompt, ctrlD);
+	 xOK = ((x < MAXROWS) && (x >= -1));
+	    
+	    
+     }
+    return x;
+
+}
+
+
+/*
+********************************************************************************
+Function: readFromY
+
+Purpose: reads and error check for a from Y coordinate input 
+
+Details: uses ioutil to check for invalid inputs and checks for out of 
+        bound coordinates. returns an integer until all conditions are met
+
+
+Return an int - y:  from y coordinate.
+
+
+********************************************************************************
+*/
+int readFromY ()
+{
+    int y;
+    bool yOK;
+    bool ctrlD = false;
+    
+	y = readInt (fromYPrompt, ctrlD);
+	yOK = (y < MAXCOLS && y >= -1);
+
+	while (ctrlD || !yOK)
+	{
+	    if (ctrlD)
+	    {
+	       cout << endl
+	       << "**** Ignoring ctrl-d - to abort the program type ctrl-c ****"
+	       << endl;
+	    }
+
+	    else
+		cout << "**** Y coordinate can't be greater than " 
+		     << MAXCOLS-1  
+		     <<" and less than -1"<<" ****"
+		     << endl;
+
+	    y = readInt (fromYPrompt, ctrlD);
+	    yOK = (y < MAXCOLS && y >= -1);
+	}	    
+
+    return y;
+
+}
+
+
+/*
+********************************************************************************
+Function: readToY
+
+Purpose: reads and error check for a to Y coordinate input 
+
+Details: uses ioutil to check for invalid inputs and checks for out of 
+        bound coordinates. returns an integer until all conditions are met
+
+
+Return an int - y:  to y coordinate.
+
+
+********************************************************************************
+*/
+int readToY()
+{
+    int y;
+    bool yOK;
+    bool ctrlD = false;
+        
+	y = readInt (fromYPrompt, ctrlD);
+	yOK = (y < MAXCOLS && y >= -1);
+
+	while (ctrlD || !yOK)
+	{
+	    if (ctrlD)
+	    {
+	       cout << endl
+	       << "**** Ignoring ctrl-d - to abort the program type ctrl-c ****"
+	       << endl;
+	    }
+
+	    else
+		cout << "**** Y coordinate can't be greater than " 
+		     << MAXCOLS-1  
+		     <<" and less than -1"<<" ****"
+		     << endl;
+
+	    y = readInt (fromYPrompt, ctrlD);
+	    yOK = (y < MAXCOLS && y >= -1);
+	}   
+
+
+    return y;
+}
+
+
+/*
+********************************************************************************
+Function: exitGame
+
+Purpose: reads and error check for a y/n input and returns true/false 
+
+Details: uses ioutil to check for invalid inputs 
+
+
+Return an bool - exit:  true if 'y'. false if 'n'.
+
+
+********************************************************************************
+*/
+bool exitGame()
+{
+    bool exit = false;
+    bool ctrlD = false;
+
+    exit = readBool(quitPrompt,ctrlD);
+    while (ctrlD)
+    {
+	if (ctrlD)
+	{
+	    cout << endl
+		 << "**** Ignoring ctrl-d - to abort the program type ctrl-c ****"
+		 << endl;
+	}
+	exit = readBool(quitPrompt,ctrlD);
+    }
+
+    return exit;
+}
+
+
+/*
+********************************************************************************
+Function: isKingDead
+
+Purpose: checks the board for kings and if one of them is removed it returns 
+         a true
+
+Details: checks the board and counts the number of kings in the board, if the 
+         numbe is less than 2 it returns true else returns false
+
+Input: const Board - t
+
+Return an bool - dead.
+
+
+********************************************************************************
+*/ 
+bool isKingDead (const Board& t)
+{
+    bool dead = false;
+    PiecePtr position;
+    int numKings = 0;
+    
+
+    for (int i = 0; i < MAXROWS;i++)
+    {
+	for (int j = 0; j < MAXROWS;j++)
+	{
+       
+	    
+	    if (t.isOccupied(i,j))
+	    {
+		position = t.getPiece(i,j);
+		if ((position -> getSymbol()== 'K' ||
+		     position -> getSymbol()== 'k'))
+		{
+		    numKings++;
+		    
+		}
+		delete position;
+	    }
+	  	    
+	    
+	}
+	
+    }
+
+    if (numKings < 2)
+	dead = true;
+
+       return dead;
+}
+
+
+/*
+********************************************************************************
+Function: initChess
+
+Purpose: initializes a board with 2 set of board pieces(Black/White) in its 
+         corresponding position.
+
+Input: const Board - test.
+       PiecePtr - BlackPiece
+       PiecePtr - whitePiece
+
+
+
+
+********************************************************************************
+*/ 
+void initChess (Board& test,PiecePtr blackPiece, PiecePtr whitePiece)
+{
+   
+   for (int i = 0; i < MAXROWS;i++)
+    {
+	for (int j = 0; j < MAXROWS;j++)
+	{
+	    if (i == 1)
+	    {
+		whitePiece = new Pawn(WHITE);
+		test.place(whitePiece,MAXROWS-2,j);
+	    }
+
+	    if (i == MAXROWS -2)
+	    {
+		blackPiece = new Pawn(BLACK);
+		test.place(blackPiece,1,j);
+	    }
+	    }
+	
+    }
+   
+//------------Black-------------------------
+   blackPiece = new Rook(BLACK);
+   test.place(blackPiece,0,0);
+   blackPiece = new Rook(BLACK);
+   test.place(blackPiece,0,7);
+
+   blackPiece = new Knight(BLACK);
+   test.place(blackPiece,0,1);
+   blackPiece = new Knight(BLACK);
+   test.place(blackPiece,0,6);
+
+   blackPiece = new Bishop(BLACK);
+   test.place(blackPiece,0,2);
+   blackPiece = new Bishop(BLACK);
+   test.place(blackPiece,0,5);
+
+   blackPiece = new Queen(BLACK);
+   test.place(blackPiece,0,3);
+
+   blackPiece = new King(BLACK);
+   test.place(blackPiece,0,4);
+
+
+//------------------Whites----------------
+   whitePiece = new Rook(WHITE);
+   test.place(whitePiece,7,0);
+   whitePiece = new Rook(WHITE);
+   test.place(whitePiece,7,7);
+
+   whitePiece = new Knight(WHITE);
+   test.place(whitePiece,7,1);
+   whitePiece = new Knight(WHITE);
+   test.place(whitePiece,7,6);
+
+   whitePiece = new Bishop(WHITE);
+   test.place(whitePiece,7,2);
+   whitePiece = new Bishop(WHITE);
+   test.place(whitePiece,7,5);
+
+   whitePiece = new Queen(WHITE);
+   test.place(whitePiece,7,3);
+
+   whitePiece = new King(WHITE);
+   test.place(whitePiece,7,4);
+
+   
+}
+
+
+
+
+
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Board.h
+/*
+ ===============================================================
+The "Board" class : represents an 8 x 8 Board of pointers.
+
+PUBLIC METHOD SPECIFICATION
+    move: given from and to coordinates, it moves the piece from 
+          from coordinates to to coordinates,if successfull returns
+	  true else false
+    
+    isOccupied: checks if a position in board is NULL or not.
+                if not NULL return true else false;
+		
+    remove: removes a piece from a board only if the given piece
+            is not NULL. returns true is successful, else otherwise
+    
+    write: displays a 8 x 8 board 
+
+    place: places a piece in the board if the position where the piece
+           is going to be placed is not occupied. returns true if
+	   successful, false otherwise.
+
+    getPiece: returns a copy of a piece from a specified position
+              returns a copy pointer to that location, if location
+	      is NULL, the pointer returned is also NULL.
+    
+=================================================================
+*/
+
+#ifndef BOARD_H
+#define BOARD_H
+
+class Board;
+#include "Piece.h"
+#include <iostream>
+using namespace std;
+
+#define MAXROWS 8
+#define MAXCOLS 8
+
+typedef Piece* PiecePtr;
+
+class Board
+{
+public:
+   Board();
+   Board (const Board& other);
+   ~Board();
+
+
+
+
+   bool move (bool colour ,int fromX, int fromY, int toX, int toY);
+   bool place (const PiecePtr& p, int x, int y);
+   bool remove (int x, int y);
+ 
+   void write (ostream& out) const;
+   bool isOccupied (int x, int y) const;
+   PiecePtr getPiece(int x, int y) const;
+   
+   Board& operator= (const Board& other);
+
+private:
+   PiecePtr grid[MAXROWS][MAXCOLS];
+
+   void initBoard();
+   void clearBoard();
+   void copyBoard(const Board& other);
+
+};
+
+ostream& operator<< (ostream& out, const Board& b);
+
+#endif
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Board.cpp 
+/*
+ ===============================================================
+The "Board" class : represents an 8 x 8 Board of pointers.
+
+PRIVATE METHOD SPECIFICATION
+    
+     initBoard: initializes each board pointer to NULL.
+     
+     clearBoard: deletes any dinamyc pointers and set those 
+                 pointers to Null
+		 
+     copyBoard: given a board class, it creates a copy of 
+                an  existing board and copies its values to 
+		the new board
+
+=================================================================
+*/
+
+
+#include "Board.h"
+#include <iostream>
+
+Board::Board()
+{
+
+    initBoard();
+    
+}
+Board ::Board (const Board& other)
+{
+    initBoard();
+    copyBoard(other);
+}
+Board::~Board()
+{
+    clearBoard();
+}
+
+Board& Board:: operator = (const Board& other)
+{
+
+        
+    if (this != &other)
+    {
+
+	clearBoard();
+
+	copyBoard(other);
+
+    }
+    
+
+    return (*this);
+}
+
+bool Board:: move (bool colour ,int fromX, int fromY, int toX, int toY)
+{
+    bool moved = false;
+
+    PiecePtr piece;
+    PiecePtr dest;
+    piece = grid[fromX][fromY];
+     
+    if (isOccupied(fromX,fromY)&&(piece->getColour()==colour) )
+    {
+	if (piece->canMove(*this,fromX,fromY,toX,toY))
+	{
+	    
+	    if (!isOccupied(toX,toY))
+	    {
+		grid[toX][toY] = grid[fromX][fromY];
+		grid[fromX][fromY] = NULL;
+		moved = true;
+	      		    
+	    }
+	    else 
+	    {
+		dest = grid[toX][toY];
+		if(dest->getColour() != colour)
+		{	
+		    remove(toX,toY);
+		    grid[toX][toY] = grid[fromX][fromY];
+		    grid[fromX][fromY] = NULL;
+		    moved = true;
+       
+		}// end if 
+		 
+		    
+		
+	    }//end else
+	    
+	}//end if
+
+    }// end out if
+
+ 
+    return moved;
+}
+
+bool Board::place (const PiecePtr& p, int x, int y)
+{
+    bool placed;
+    
+    if (grid[x][y] == NULL)
+    {
+	grid[x][y] = p;
+	placed = true;
+    }
+    else
+	placed = false;
+    return placed;
+}
+
+bool Board::remove (int x, int y)
+{
+    bool removed;
+    if (grid[x][y] != NULL)
+    {	
+	delete grid[x][y];
+	grid[x][y] = NULL;
+	removed = true;
+    }
+    else
+	removed = false;
+    
+    return removed;
+}
+
+void Board::write (ostream& out) const
+{
+
+    PiecePtr position;
+    out <<endl<<endl;
+//-----------------------------------
+// top numbers
+    out<<" ";
+    for (int x = 0; x < MAXROWS; x++)
+    {
+	out<<"   "<<x;
+    }
+    out << endl;
+//-----------------------------------------
+//bottom separators
+    out <<"  ";
+    for (int x = 0; x < MAXROWS; x++)
+    {
+	out<<"+---";
+    }
+    out <<"+";
+    out << endl;
+
+//------------------------------------------
+//printing array
+    for(int r = 0; r < MAXROWS; r++)
+    {
+	for(int c = 0; c < MAXCOLS; c++)
+	{
+	    if (c == 0 )
+	    {
+		out << r << " | "; 
+		 
+		if(grid[r][c] != NULL)
+		{
+		     
+		    position = grid[r][c];
+		    out << position->getSymbol();
+		}
+		else
+		    out << " ";
+	    }//end if	 
+	    else
+	    {
+		out << " | ";
+		 
+		if(grid[r][c] != NULL)
+		{   
+		    position = grid[r][c];
+		    out << position->getSymbol();
+		}
+		else
+		    out << " ";
+	    }//end else
+
+	}//end for
+
+	out<<" |";
+	out<<endl;
+	out <<"  ";
+	for (int x = 0; x < MAXROWS; x++)
+	{
+	    out<<"+---";
+	}
+	out <<"+";
+	out << endl;
+    }//end for
+    out <<endl<<endl;
+
+}
+
+
+bool Board::isOccupied (int x, int y) const
+{
+    bool occupied;
+    
+    if ( grid[x][y] == NULL)
+	occupied = false;
+    else
+	occupied= true;
+
+    return occupied;
+}
+
+PiecePtr Board::getPiece(int x, int y) const
+{
+    PiecePtr piece;
+    
+    if (grid[x][y] == NULL)
+	piece = NULL;
+    else
+	piece = grid[x][y]->clone();
+    
+    return piece;
+
+}
+
+
+//---------------Private--------------------------------
+
+void Board::initBoard()
+{
+
+    int i;
+    int j;
+    
+    for (i = 0; i < MAXROWS ; i++)
+    {
+	for (j = 0; j < MAXCOLS ; j++)
+	{
+	    grid[i][j] = NULL;
+	}
+	
+    }
+    
+
+}
+void Board::clearBoard()
+{
+    for (int i = 0; i < MAXROWS ; i++)
+    {
+	for (int j = 0; j < MAXCOLS ; j++)
+	{
+	    delete grid[i][j];
+	    grid[i][j] = NULL;
+	}
+
+    }
+
+}
+void Board::copyBoard(const Board& other)
+{
+
+    for (int i = 0; i < MAXROWS; i++)
+    {
+	for (int j = 0; j < MAXCOLS; j++)
+	{
+	    if (other.grid[i][j] != NULL)
+	    {
+
+		grid[i][j]=other.grid[i][j]->clone();
+
+		
+	    }
+	}
+    }
+
+}
+
+
+ostream& operator<< (ostream& out, const Board& b)
+{
+    b.write(out);
+    return out;
+
+}
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Piece.h
+/*
+ ===============================================================
+The "Piece" class : represents an abstraction for a chess Piece.
+
+PUBLIC METHOD SPECIFICATION
+   
+   getSymbol: retruns the symbol of a piece
+
+   getColour: retruns a bool value representing a color.
+              true is white, false is black.
+   
+   clone: makes a clone or copy of a specified piece and returns
+          that copy
+   
+   canMove: checks for a pieces defined rules to determined it 
+            a move is valid or not.
+    
+=================================================================
+*/
+#ifndef PIECE_H
+#define PIECE_H
+
+
+class Piece;
+#include "Board.h"
+#include <iostream>
+#include <cmath>
+using namespace std;
+
+
+#define WHITE true
+#define BLACK false
+
+typedef Piece* PiecePtr;
+
+class Piece
+{
+public:
+   Piece (bool col);
+
+  virtual char getSymbol() const = 0;
+  bool getColour() const;
+  virtual PiecePtr clone()const =0; 
+  virtual bool canMove(const Board& b, int fromX, int fromY, int toX, int toY)=0;
+   
+
+private:
+   bool colour;
+
+
+protected:
+ bool isPathClear(const Board& b, int fromX, int fromY, int toX, int toY)const;
+   bool isVertical (int fromX, int fromY, int toX, int toY) const;
+   bool isHorizontal (int fromX, int fromY, int toX, int toY) const;
+   bool isDiagonal (int fromX, int fromY, int toX, int toY) const;
+   bool isForward (int fromX, int toX) const;
+   int vertDistance (int fromX, int toX) const;
+   int horizDistance (int fromY, int toY) const;
+};
+
+
+#endif
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Piece.cpp 
+#include "Board.h"
+#include "Piece.h"
+
+Piece::Piece(bool col)
+{
+    colour = col;
+
+}
+
+bool Piece::getColour() const
+{
+ 
+    return colour;
+    
+}
+//---------------------private-------------------------------------------------
+
+
+bool Piece::isPathClear(const Board& b, int fromX, int fromY, int toX, int toY)const
+{
+    bool clear = true;
+    bool vertical = isVertical(fromX,fromY,toX,toY);
+    bool horizontal = isHorizontal(fromX,fromY,toX,toY);
+    bool diagonal = isDiagonal (fromX,fromY,toX,toY);
+    bool forward = isForward(fromX,toX);//true goes down, false goes up
+    bool sideForward  = (fromY < toY);//true goes right
+    bool occupied = b.isOccupied(toX,toY);
+     int num = 0;
+
+    if (vertical )
+    {
+	if(forward)
+	{
+	    
+	   
+	    for (int j = fromX+1; (j < toX ); j++)
+	    {
+		occupied = b.isOccupied(j,toY);
+		if (occupied)
+		    num++;
+	    }
+	    if(num != 0)
+		clear = false;
+	   
+	}
+
+	else
+	{
+	    
+	   
+	    for (int i = fromX-1; (i != toX); i--)
+	    {
+	
+		occupied = b.isOccupied(i,toY);
+		if (occupied)
+		    num++;
+		   
+	    }
+	
+	    if (num != 0)
+		clear =false;
+	  
+	    
+	}
+    }
+//-------------------horizontal------------------------
+    
+   else if (horizontal )
+    {
+	num = 0;
+	if(sideForward)
+	{
+	
+	    for (int j = fromY+1; (j != toY); j++)
+	    {
+		occupied = b.isOccupied(toX,j);
+		if (occupied)
+		    num++;
+	
+		
+	    }
+	    if (num != 0)
+		clear = false;
+	   
+	}
+	else
+	{
+	
+	    for (int i = fromY-1; (i != toY); i--)
+	    {
+		occupied = b.isOccupied(toY,i);
+		if (occupied)
+		    num++;
+	
+	    }
+	    if (num != 0)
+		clear = false;
+
+	    
+	}
+    }
+
+//---------------------diagonal----------------------------
+    
+
+    else if (diagonal )
+    {
+	 
+//-----------------UpRight-------------------------------
+	if ((fromX > toX)&& (fromY < toY))
+	{
+	   
+	   
+	    for(int i = fromX-1, j = fromY+1;
+		(i != toX && j != toY) && clear;
+		i--, j++)
+	    {
+
+		occupied = b.isOccupied(i,j);
+		
+		if (occupied)
+		    
+		    clear =false;
+	    }//end for
+
+	}//end if
+//-----------------DownLeft-------------------------------    
+	else if ((fromX < toX)&& (fromY > toY))
+	{
+	    
+
+	    for(int i = fromX+1, j = fromY-1;
+		(i != toX && j != toY) && clear;
+		i++,j--)
+	    {
+
+		occupied = b.isOccupied(i,j);
+		if (occupied)
+		    clear =false;
+
+	    }//end for
+
+	} //end else if
+
+
+	else if ((fromX > toX)&& (fromY > toY))
+	{
+
+
+	    for(int i = fromX-1, j = fromY-1;
+		(i != toX  && j != toY) && clear;
+		i--,j--)
+	    {
+
+		occupied = b.isOccupied(i,j);
+		
+		if (occupied)
+		    clear =false;
+
+	    }//end for
+	}//end else if
+
+//-----------------DownRight-------------------------------
+	else if ((fromX < toX)&& (fromY < toY))
+	{
+
+
+	    for(int i = fromX+1, j = fromY+1;
+		(i != toX && j != toY) && clear;
+		i++,j++)
+	    {
+
+		occupied = b.isOccupied(i,j);
+		if (occupied)
+		    clear =false;
+
+	    }//end for
+	}//end else if
+    }
+
+
+
+
+    return clear;
+}
+
+bool Piece::isVertical (int fromX, int fromY, int toX, int toY) const
+{
+    bool vertical;
+  
+    if (fromX != toX && fromY == toY)
+	vertical = true;
+    else
+	vertical = false;
+    
+    return vertical;
+}
+
+bool Piece::isHorizontal (int fromX, int fromY, int toX, int toY) const
+{
+    bool horizontal;
+  
+    if (fromX == toX && fromY != toY)
+      
+	horizontal = true;
+    else
+	horizontal = false;
+    
+    return horizontal;
+ 
+}
+
+bool Piece::isDiagonal (int fromX, int fromY, int toX, int toY) const
+{
+    bool diagonal;
+    int vDistance = vertDistance(fromX,toX);
+    int hDistance = horizDistance(fromY,toY);
+
+
+
+    if (vDistance == hDistance)
+    { 
+	if (fromX > toX && fromY > toY )
+	    diagonal = true;
+
+	else if (fromX < toX && fromY > toY )
+	    diagonal = true;
+	 
+	else if (fromX > toX && fromY < toY )
+	    diagonal = true;
+
+	else  if (fromX < toX && fromY < toY )
+	    diagonal = true;
+	else
+	    diagonal = false;
+    }
+    return diagonal;
+  
+}
+
+bool Piece::isForward (int fromX, int toX) const
+{
+    bool forward;
+    
+    if (fromX - toX > 0)
+	forward = false; //up
+    else
+	forward = true;//down
+  
+    return forward;
+}
+
+
+int Piece::vertDistance (int fromX, int toX) const
+{
+    double vDistance;
+
+    vDistance = fromX - toX;
+    
+     
+    return static_cast<int>(abs(vDistance));
+}
+
+int Piece::horizDistance (int fromY, int toY) const
+{
+    double hDistance;
+    
+    hDistance = fromY - toY;
+    
+
+    return static_cast<int>(abs(hDistance));
+}
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat King.h
+/* 
+===============================================================
+The "King" class : represents the Piece King.
+
+PUBLIC METHOD SPECIFICATION
+   
+   getSymbol: retruns the symbol for King
+
+   clone: makes a clone or copy King piece and returns
+          that copy
+   
+   canMove: check for Queen's movement. if the move is successful
+            returns true, else false.
+	    if the move is in any direction and only one space 
+	    move returns true.
+	    everyother movement, move returns fasle.
+    
+=================================================================
+*/ 
+#ifndef KING_H
+#define KING_H
+
+
+class King;
+#include "Board.h"
+#include "Piece.h"
+#include <iostream>
+using namespace std;
+
+
+
+
+class King: public Piece
+{
+public:
+   King (bool col);
+
+   char getSymbol() const;
+   bool canMove(const Board& b, int fromX, int fromY, int toX, int toY);
+   PiecePtr clone()const ; 
+
+};
+
+
+#endif
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat King.cpp 
+#include "King.h"
+
+King::King(bool col):Piece(col)
+{
+    
+}
+
+
+PiecePtr King::clone()const 
+{
+    PiecePtr clonePiece;
+    clonePiece = new King(getColour());
+    return clonePiece;
+} 
+
+char King::getSymbol() const
+{
+    char symbol;
+    
+    if (!getColour())
+	symbol = 'k';
+    else 
+	symbol = 'K';
+
+    return symbol;
+}
+
+
+bool King::canMove(const Board& b, int fromX, int fromY, int toX, int toY)
+{
+    bool move = false;
+    bool vertical = isVertical(fromX,fromY,toX,toY);
+    bool horizontal = isHorizontal(fromX,fromY,toX,toY);
+    bool diagonal = isDiagonal (fromX,fromY,toX,toY);
+    int vDistance = vertDistance(fromX,toX);
+    int hDistance = horizDistance(fromY,toY);
+
+    if (vertical && vDistance == 1)
+	move = true;
+    else if (horizontal && hDistance == 1)
+	move = true;
+    else if (diagonal && (vDistance == 1 && hDistance == 1))
+	move = true;
+    return move;
+}
+
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat
+Queen.h
+Queen.h
+^C
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Queen.h
+/* 
+===============================================================
+The "Queen" class : represents the Piece Queen.
+
+PUBLIC METHOD SPECIFICATION
+   
+   getSymbol: retruns the symbol for Queen
+
+   clone: makes a clone or copy Queen piece and returns
+          that copy
+   
+   canMove: check for Queen movement. if the move is successful
+            returns true, else false.
+	    if the move is in any direction and and there is not 
+	    a piece in between the starting and finish position,
+	    move returns true
+	    everyother movement move returns false.
+    
+=================================================================
+*/ 
+#ifndef QUEEN_H
+#define QUEEN_H
+
+
+class Queen;
+#include "Board.h"
+#include "Piece.h"
+#include <iostream>
+using namespace std;
+
+
+class Queen: public Piece
+{
+public:
+   Queen (bool col);
+   
+   PiecePtr clone()const ; 
+   char getSymbol() const;
+   bool canMove(const Board& b, int fromX, int fromY, int toX, int toY);
+ 
+};
+
+
+#endif
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Queen.cpp 
+#include "Queen.h"
+
+Queen::Queen(bool col):Piece(col)
+{
+    
+}
+
+PiecePtr Queen::clone()const 
+{
+    PiecePtr clonePiece;
+    clonePiece = new Queen(getColour());
+    return clonePiece;
+} 
+
+char Queen::getSymbol() const
+{
+    char symbol;
+    
+    if (!getColour())
+	symbol = 'q';
+    else 
+	symbol = 'Q';
+
+    return symbol;
+}
+
+
+bool Queen::canMove(const Board& b, int fromX, int fromY, int toX, int toY)
+{
+
+    bool move=false;
+    bool vertical = isVertical(fromX,fromY,toX,toY);
+    bool horizontal = isHorizontal(fromX,fromY,toX,toY);
+    bool diagonal = isDiagonal (fromX,fromY,toX,toY);
+    bool pathClear = isPathClear(b,fromX,fromY,toX,toY);
+
+    if (vertical && pathClear)
+	move = true;
+    else if (horizontal && pathClear)
+	move = true;
+    else if (diagonal && pathClear)
+	move = true;
+
+    return move;
+}
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Bishop.h
+/* 
+===============================================================
+The "Bishop" class : represents the Piece Bishop.
+
+PUBLIC METHOD SPECIFICATION
+   
+   getSymbol: retruns the symbol for Bishop
+
+   clone: makes a clone or copy Bishop piece and returns
+          that copy
+   
+   canMove: check for Bishop's movement. if the move is successful
+            returns true, else false.
+	    if the move is in any direction diagonally and there 
+	    is not a piece in between the starting and finish 
+	    position, move returns true 
+	    everyother movement returns fasle.
+    
+=================================================================
+*/ 
+#ifndef BISHOP_H
+#define BISHOP_H
+
+
+class BISHOP;
+#include "Board.h"
+#include "Piece.h"
+#include <iostream>
+using namespace std;
+
+
+class Bishop: public Piece
+{
+public:
+   Bishop (bool col);
+
+   char getSymbol() const;
+   PiecePtr clone()const ;   
+   bool canMove(const Board& b, int fromX, int fromY, int toX, int toY);
+  
+};
+
+
+#endif
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Bishop.cpp 
+#include "Bishop.h"
+
+Bishop::Bishop(bool col): Piece(col)
+{
+}
+
+
+PiecePtr Bishop::clone()const 
+{
+    PiecePtr clonePiece;
+    clonePiece = new Bishop(getColour());
+    return clonePiece;
+} 
+
+char Bishop::getSymbol() const
+{
+    char symbol;
+    
+    if (!getColour())
+	symbol = 'b';
+    else 
+	symbol = 'B';
+
+    return symbol;
+}
+
+bool Bishop::canMove(const Board& b, int fromX, int fromY, int toX, int toY)
+{
+    
+    bool move=false;
+    
+    bool diagonal = isDiagonal (fromX,fromY,toX,toY);
+    bool pathClear = isPathClear(b,fromX,fromY,toX,toY);
+
+    if (diagonal && pathClear)
+	move = true;
+    
+    return move;
+}
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Knight.h
+/* 
+===============================================================
+The "Knight" class : represents the Knight
+
+PUBLIC METHOD SPECIFICATION
+   
+   getSymbol: retruns the symbol for Knight
+
+   clone: makes a clone or copy Knight piece and returns
+          that copy
+   
+   canMove: check for Knight movement. if the move is successful
+            returns true, else false.
+	    if the move is in any direction and the move is 2 
+	    spaces horizontally and 1 vertically or 1 horizontally
+	    and 2 vertically,move returns true.
+	    everyother movement move returns false.
+    
+=================================================================
+*/ 
+#ifndef KNIGHT_H
+#define KNIGHT_H
+
+
+class Knight;
+#include "Board.h"
+#include "Piece.h"
+#include <iostream>
+using namespace std;
+
+
+
+
+class Knight: public Piece
+{
+public:
+   Knight (bool col);
+   
+   PiecePtr clone()const ; 
+   char getSymbol() const;
+   bool canMove(const Board& b, int fromX, int fromY, int toX, int toY);
+   
+};
+
+
+#endif
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Knight.cpp 
+#include "Knight.h"
+
+Knight::Knight(bool col):Piece(col)
+{
+  
+}
+
+
+PiecePtr Knight::clone()const 
+{
+    PiecePtr clonePiece;
+    clonePiece = new Knight(getColour());
+    return clonePiece;
+}
+
+char Knight::getSymbol() const
+{
+    char symbol;
+    
+    if (!getColour())
+	symbol = 'n';
+    else 
+	symbol = 'N';
+
+    return symbol;
+}
+
+
+bool Knight::canMove(const Board& b, int fromX, int fromY, int toX, int toY)
+{
+
+    bool move=false;
+
+    int vDistance = vertDistance(fromX,toX);
+    int hDistance = horizDistance(fromY,toY);
+   
+   
+    if (hDistance == 2)
+    {
+	if(vDistance == 1)
+	    move = true;
+    }
+    else if (hDistance == 1)
+    {
+	if (vDistance == 2)
+	    move = true;
+    }
+    else
+	move = false;
+    
+    
+    return move;
+}
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Rook.h
+/* 
+===============================================================
+The "Rook" class : represents the Piece Rook.
+
+PUBLIC METHOD SPECIFICATION
+   
+   getSymbol: retruns the symbol for Rook
+
+   clone: makes a clone or copy Rook piece and returns
+          that copy
+   
+   canMove: check for Rook movement. if the move is successful
+            returns true, else false.
+	    if the move is in any direction vertically or horizontally 
+	    and and there is not a piece in between the starting 
+	    and finish position,move returns true
+	    everyother movement move returns false.
+    
+=================================================================
+*/ 
+#ifndef ROOK_H
+#define ROOK_H
+
+
+class Rook;
+#include "Board.h"
+#include "Piece.h"
+#include <iostream>
+
+using namespace std;
+
+
+
+
+class Rook: public Piece
+{
+public:
+   Rook (bool col);
+
+   PiecePtr clone()const;
+   char getSymbol() const;
+   bool canMove(const Board& b, int fromX, int fromY, int toX, int toY);
+   
+};
+
+
+#endif
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Rook.cpp 
+#include "Rook.h"
+
+Rook::Rook(bool col): Piece(col)
+{
+  
+}
+
+PiecePtr Rook::clone()const 
+{
+    PiecePtr clonePiece;
+    clonePiece = new Rook(getColour());
+    return clonePiece;
+}
+
+char Rook::getSymbol() const
+{
+    char symbol;
+    
+    if (!getColour())
+	symbol = 'r';
+    else 
+	symbol = 'R';
+
+    return symbol;
+}
+
+
+bool Rook::canMove(const Board& b, int fromX, int fromY, int toX, int toY)
+{
+
+    bool move = false;
+    bool vertical = isVertical(fromX,fromY,toX,toY);
+    bool horizontal = isHorizontal(fromX,fromY,toX,toY);
+    bool pathClear = isPathClear(b,fromX,fromY,toX,toY);
+
+    if (vertical && pathClear)
+	move = true;
+    else if (horizontal && pathClear)
+	move = true;
+    else 
+	move = false;
+	    
+    return move;
+}
+
+ 
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Pawn.h
+/* 
+===============================================================
+The "Pawn" class : represents the Piece Pawn.
+
+PUBLIC METHOD SPECIFICATION
+   
+   getSymbol: retruns the symbol for Pawn
+
+   clone: makes a clone or copy Pawn piece and returns
+          that copy
+   
+   canMove: check for Pawn's movement. if the move is successful
+            returns true, else false.
+	    if Pawn is in starting position and the move 1 or 2
+	    forward spaces, move returns true.
+	    if Pawn has moved and the move is one space forward,
+	    move returns true.
+	    if Pawn is in any position and the move is diagonal
+	    forward and a different color piece is in the position
+	    wanted to move to, move returns true.
+	    everyother movement is false.
+    
+=================================================================
+*/
+#ifndef PAWN_H
+#define PAWN_H
+
+
+class Pawn;
+#include "Piece.h"
+#include "Board.h"
+#include <iostream>
+using namespace std;
+
+
+
+class Pawn: public Piece
+{
+public:
+   Pawn (bool col);
+
+   
+   char getSymbol() const;
+
+   bool canMove(const Board& b, int fromX, int fromY, int toX, int toY);
+   
+   PiecePtr clone()const ; 
+    
+private:
+   
+   bool hasMoved;
+
+};
+
+
+#endif
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mcat Pawn.cpp 
+#include "Pawn.h"
+
+Pawn::Pawn(bool col):Piece(col)
+{
+    hasMoved = false;
+}
+
+PiecePtr Pawn::clone()const 
+{
+    PiecePtr clonePiece;
+    clonePiece = new Pawn(getColour());
+    return clonePiece;
+} 
+ 
+char Pawn::getSymbol() const
+{
+    char symbol;
+    
+    if (!getColour())
+	symbol = 'p';
+    else 
+	symbol = 'P';
+
+    return symbol;
+}
+
+
+bool Pawn::canMove(const Board& b, int fromX, int fromY, int toX, int toY)
+{
+
+
+    bool move=false;
+    bool vertical = isVertical(fromX,fromY,toX,toY);
+    bool diagonal = isDiagonal (fromX,fromY,toX,toY);
+    bool forward = isForward(fromX,toX);
+    bool occupied = b.isOccupied(toX,toY);
+    int vDistance = vertDistance(fromX,toX);
+    int hDistance = horizDistance(fromY,toY);
+    if (vertical && !occupied)
+    {
+	if (fromX == MAXROWS -2 || fromX == 1)//boundary check
+	{
+	    if ((vDistance == 1 || vDistance == 2) && !hasMoved)// move check
+	    {	
+		move = true;
+		hasMoved = true;
+	    }
+	}
+	else 
+	    if (vDistance == 1 && (getColour() == !forward))// move and direction check
+		move = true;
+    }
+  
+    else if (diagonal && occupied)
+    {
+	
+	if (vDistance == 1 && hDistance == 1 )// distance & direction check
+	{
+	   
+
+	    if (!getColour() && (fromX < toX))
+		move = true;
+	    else 
+		if(getColour() && (fromX > toX))
+		    move = true;
+		
+	}
+    }
+
+  
+  
+	
+    
+    return move;
+}
+
+
+
+[0;32mJorge.ins@mru [1;33m[0;33m~/a5/p3 : [0mexit
+exit
+
+Script done on Mon 09 Apr 2018 09:57:13 PM MDT
