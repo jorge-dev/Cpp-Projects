@@ -1,0 +1,6 @@
+1. Complete the Piece class so that it behaves like a pawn.
+2. Write a main program that sets up a board with two rows of pawns (one row white and one
+black) and then allows two users to take turns entering moves.
+
+The board should be set up so that the topmost row, row 0, is filled with eight black pawns, and the bottommost row, row 7, is filled with eight white pawns. A black pawn will be drawn with a lowercase 'p' symbol, and a white pawn with an uppercase 'P'.
+According to the rules of chess, a pawn is able to move only in one direction (forward). In our case, white moves up while black moves down. A pawn’s very first move may be either one or two squares in its home column. After that, it can move just one square at a time for the duration of the game. A pawn can also capture an opposing piece diagonally. When a pawn takes an opposing piece, it moves to occupy the position of the captured piece, and the captured piece is removed from the board. Note that a pawn can only capture pieces on adjacent diagonal squares which are ahead of it. A pawn can never move multiple squares or backwards to capture a piece. If you know about capturing “en passant”, you must ignore that chess rule for this assignment.

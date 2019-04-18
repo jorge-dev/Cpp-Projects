@@ -1,0 +1,1 @@
+Implement a Board class for representing an 8 × 8 chess board. You will also write a generic Piece class for representing moving chess pieces which have been placed on the board. You can think of a Board object as a container for Piece objects, with each Piece stored at a particular (row, column) location.
